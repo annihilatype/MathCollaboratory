@@ -10,32 +10,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Expand prepared source package (first run only)
-        if: hashFiles('mathcollaboratory-source.zip') != ''
-        run: |
-          echo '475964d71b4883dcab6575949c7483d712adde042e5d3b10c52765385346517b  mathcollaboratory-source.zip' | sha256sum -c -
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          from zipfile import ZipFile
-          with ZipFile('mathcollaboratory-source.zip') as archive:
-              for item in archive.infolist():
-                  path = Path(item.filename)
-                  if path.is_absolute() or '..' in path.parts or '.git' in path.parts:
-                      raise ValueError('Invalid archive path')
-                  if path.parts[0] != '.github':
-                      archive.extract(item)
-          Path('mathcollaboratory-source.zip').unlink()
-          PYTHON
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m "feat: expand MathCollaboratory v0.1 source"
-          git push origin HEAD:main
       - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
