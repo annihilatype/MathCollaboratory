@@ -11,7 +11,7 @@
 - Проверены узкая компоновка и настольная компоновка 1280×800. Это не полное тестирование всех мобильных браузеров.
 - Статическая сборка открыта через HTTP по `/MathCollaboratory/`. HTML, JavaScript, CSS и все 20 запрошенных файлов шрифтов возвращают HTTP 200. Ошибок приложения в консоли не обнаружено.
 - Смена цвета реализована; нативный диалог выбора цвета отдельно автоматически не проверялся.
-- GitHub Actions выполнен успешно: установка, 51 тест, TypeScript, production-сборка и публикация Pages. [Первый успешный запуск](https://github.com/galuskovboris/MathCollaboratory/actions/runs/42423895021).
-- Публичный адрес: https://galuskovboris.github.io/MathCollaboratory/. Последующие push в main автоматически запускают проверки и обновление сайта.
+- GitHub Actions выполнен успешно: установка, 51 тест, TypeScript, production-сборка и публикация Pages. [Первый успешный запуск](https://github.com/annihilatype/MathCollaboratory/actions/runs/42423895021).
+- Публичный адрес: https://annihilatype.github.io/MathCollaboratory/. Последующие push в main автоматически запускают проверки и обновление сайта.
 
 Снимок проверенной статической сборки: `preview.jpg`.
