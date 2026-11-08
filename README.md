@@ -60,11 +60,11 @@ math.js используется только для синтаксическо�
 
 ## GitHub Pages
 
-Репозиторий: [galuskovboris/MathCollaboratory](https://github.com/galuskovboris/MathCollaboratory).
+Репозиторий: [annihilatype/MathCollaboratory](https://github.com/annihilatype/MathCollaboratory).
 
-Адрес приложения после успешного развёртывания: [galuskovboris.github.io/MathCollaboratory](https://galuskovboris.github.io/MathCollaboratory/).
+Адрес приложения после успешного развёртывания: [annihilatype.github.io/MathCollaboratory](https://annihilatype.github.io/MathCollaboratory/).
 
-Конфигурация находится в `.github/workflows/pages.yml`. При push в `main` (или ручном запуске) она устанавливает зависимости по lockfile, выполняет тесты, проверку типов, сборку и загружает Pages-артефакт. **Задание публикации выполняется**, только если переменная репозитория `ENABLE_PAGES_DEPLOY` не равна строке `true`.
+Конфигурация находится в `.github/workflows/pages.yml`. При push в `main` (или ручном запуске) она устанавливает зависимости по lockfile, выполняет тесты, проверку типов, сборку и загружает Pages-артефакт. **Задание публикации выполняется**, только если переменная репозитория `ENABLE_PAGES_DEPLOY` равна строке `true`.
 
 Первичная настройка публикации (для этого репозитория или собственной копии):
 
