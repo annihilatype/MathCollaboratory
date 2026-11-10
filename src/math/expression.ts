@@ -62,9 +62,46 @@ export function latexToExpression(latex: string): string {
   });
   if (!result.trim()) throw new Error('Введите функцию от x.');
   if (/[^a-zA-Z0-9_+\-*/^().\s]/.test(result)) throw new Error('Поддерживаются функции y = f(x), числа и арифметические операции.');
-  // MathLive emits sin x and sin^2(x) as well as sin(x).
-  result = result.replace(/(sin|cos|tan)\^\((\d+)\)\s*\(([^()]*)\)/g, '($1($3))^$2');
-  result = result.replace(/\b(sin|cos|tan|ln|log|exp|abs|sqrt)\s+([a-zA-Z](?:_[a-zA-Z0-9]+)?|\d+(?:\.\d+)?)/g, '$1($2)');
+  result = normalizeFunctions(result);
+  return result;
+}
+
+// Consume complete powers and balanced arguments, rather than rewriting with a
+// regex that cannot distinguish sin(x²) from sin²(x) or nested parentheses.
+function normalizeFunctions(source: string): string {
+  const tokens = source.match(/[a-zA-Z][a-zA-Z0-9_]*|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[^\s]/g) ?? [];
+  let i = 0;
+  const ambiguous = () => new Error('Укажите аргумент функции в скобках, например sin(2x) или sin(x^2).');
+  function atom(): string {
+    const token = tokens[i++];
+    if (!token) throw ambiguous();
+    if (token === '(') {
+      let content = '';
+      while (i < tokens.length && tokens[i] !== ')') content += ' ' + next();
+      if (tokens[i++] !== ')') throw ambiguous();
+      return '(' + content + ')';
+    }
+    if (Object.hasOwn(functions, token)) {
+      let exponent = '';
+      if (tokens[i] === '^') { i++; exponent = power(); }
+      const explicit = tokens[i] === '(';
+      if (exponent && !explicit) throw ambiguous();
+      if (!explicit && !/^(?:[a-zA-Z]|\d|\.)/.test(tokens[i] ?? '')) throw ambiguous();
+      const argument = explicit ? atom() : power();
+      if (!explicit && tokens[i] && !['+', '-', '*', '/', '^', ')'].includes(tokens[i])) throw ambiguous();
+      const call = token + '(' + argument + ')';
+      return exponent ? '(' + call + ')^(' + exponent + ')' : call;
+    }
+    return token;
+  }
+  function power(): string {
+    let value = atom();
+    if (tokens[i] === '^') { i++; value += '^' + power(); }
+    return value;
+  }
+  function next(): string { return atom(); }
+  let result = '';
+  while (i < tokens.length) result += ' ' + next();
   return result;
 }
 
