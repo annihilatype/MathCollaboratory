@@ -23,7 +23,9 @@ test('long input is rejected without losing any saved work', async ({ page }) =>
 });
 
 test('recovers a damaged record without resetting healthy records', async ({ page }) => {
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seed-damaged')) return;
+    sessionStorage.setItem('seed-damaged', '1');
     const s = JSON.parse(localStorage.getItem('mathcollaboratory.v1')!);
     s.theme = 'dark'; s.expressions.push(null, { ...s.expressions[0], id: 'long', latex: 'x'.repeat(501) });
     localStorage.setItem('mathcollaboratory.v1', JSON.stringify(s));
@@ -85,7 +87,7 @@ test('updates accessible editor names after deleting the first expression', asyn
 });
 
 test('uses expression order to label restored reordered records', async ({ page }) => {
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('mathcollaboratory.v1')!); s.expressions.reverse(); localStorage.setItem('mathcollaboratory.v1', JSON.stringify(s)); });
+  await page.addInitScript(() => { const s = JSON.parse(localStorage.getItem('mathcollaboratory.v1')!); s.expressions.reverse(); localStorage.setItem('mathcollaboratory.v1', JSON.stringify(s)); });
   await page.reload();
   await expect(page.locator('math-field').nth(0)).toHaveAttribute('aria-label', 'Выражение 1');
   await expect(page.locator('math-field').nth(1)).toHaveAttribute('aria-label', 'Выражение 2');
@@ -165,7 +167,9 @@ test('keyboard editing through the browser persists without direct value assignm
 });
 
 test('mixed damaged records recover independently over repeated page reloads', async ({ page }) => {
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seed-mixed')) return;
+    sessionStorage.setItem('seed-mixed', '1');
     const s = JSON.parse(localStorage.getItem('mathcollaboratory.v1')!);
     s.expressions[0].color = { toString: null };
     s.expressions[0].visible = false;

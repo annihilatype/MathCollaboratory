@@ -51,7 +51,8 @@ test('native keyboard input into complex editor persists',async({page})=>{
   await page.reload();await expect(page.locator('.object-details').last()).toContainText('Im = 3');
 });
 test('legacy save migrates, plane pans and cursor coordinates respond',async({page})=>{
-  await page.evaluate(()=>{
+  await page.addInitScript(()=>{
+    if(sessionStorage.getItem('seed-legacy'))return;sessionStorage.setItem('seed-legacy','1');
     const s=JSON.parse(localStorage.getItem('mathcollaboratory.v1')!);
     localStorage.setItem('mathcollaboratory.v1',JSON.stringify({version:1,theme:'dark',expressions:s.expressions,parameters:s.parameters}));
   });
