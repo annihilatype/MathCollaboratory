@@ -32,7 +32,7 @@ export function decodeState(raw: string | null): AppState {
       if (!e || typeof e.id !== 'string' || ids.has(e.id) || typeof e.latex !== 'string') continue;
       ids.add(e.id);
       expressions.push({ id: e.id, latex: e.latex,
-        color: /^#[a-f\d]{6}$/i.test(e.color) ? e.color : COLORS[expressions.length % COLORS.length],
+        color: typeof e.color === 'string' && /^#[a-f\d]{6}$/i.test(e.color) ? e.color : COLORS[expressions.length % COLORS.length],
         visible: typeof e.visible === 'boolean' ? e.visible : true });
     }
     const parameters: Record<string, Parameter> = {};

@@ -114,3 +114,77 @@ test('updates names when mounted editors are reordered with stable keys', async 
   await expect(editors.nth(1)).toHaveAttribute('aria-label', 'Тест 2');
   expect(await editors.nth(0).evaluate(e => (e as HTMLElement & { value: string }).value)).toBe('a');
 });
+
+test('small steps, negative bounds and off-grid values stay consistent after two reloads', async ({ page }) => {
+  for (const parameter of [
+    { value: .9, min: 0, max: 1, step: .6 },
+    { value: -.7, min: -2, max: 1, step: .4 },
+    { value: .125, min: -.25, max: .5, step: .05 },
+    { value: 3e-10, min: 0, max: 1e-8, step: 1e-10 },
+  ]) {
+    await page.getByRole('button', { name: 'Настройки параметра a' }).click();
+    const inputs = page.locator('.parameter-settings input');
+    for (const [i, key] of ['value', 'min', 'max', 'step'].entries()) await inputs.nth(i).fill(String(parameter[key as keyof typeof parameter]));
+    await page.getByRole('button', { name: 'Применить', exact: true }).click();
+    for (let i = 0; i < 3; i++) {
+      const value = (await saved(page)).parameters.a.value;
+      expect(Number(await page.locator('#slider-a').inputValue())).toBe(value);
+      expect(Number(await page.locator('.parameter-top strong').innerText())).toBe(value);
+      if (i < 2) await page.reload();
+    }
+  }
+});
+
+test('deleting a middle expression renumbers the surviving editors', async ({ page }) => {
+  await page.getByRole('button', { name: 'Добавить выражение' }).click();
+  await setFormula(page, 'x+1', 2);
+  await page.getByRole('button', { name: 'Удалить функцию 2', exact: true }).click();
+  await expect(page.locator('math-field').nth(1)).toHaveAttribute('aria-label', 'Выражение 2');
+  expect((await saved(page)).expressions[1].latex).toBe('x+1');
+  await page.reload();
+  expect((await saved(page)).expressions[1].latex).toBe('x+1');
+});
+
+test('keyboard editing through the browser persists without direct value assignment', async ({ page }) => {
+  await page.getByRole('button', { name: 'Добавить выражение' }).click();
+  const editor = page.locator('math-field').last();
+  await editor.click({ position: { x: 20, y: 20 } });
+  await expect(editor).toBeFocused();
+  await page.keyboard.type('x+1');
+  await expect.poll(async () => (await saved(page)).expressions[2].latex).toBe('x+1');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.insertText('2');
+  await expect.poll(async () => (await saved(page)).expressions[2].latex).toBe('x+2');
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.evaluate(() => navigator.clipboard.writeText('x'.repeat(501)));
+  await page.keyboard.press('Control+V');
+  await expect(page.getByRole('alert')).toContainText('Ввод отклонён');
+  expect((await saved(page)).expressions[2].latex).toBe('x+2');
+  await page.reload();
+  expect((await saved(page)).expressions[2].latex).toBe('x+2');
+});
+
+test('mixed damaged records recover independently over repeated page reloads', async ({ page }) => {
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('mathcollaboratory.v1')!);
+    s.expressions[0].color = { toString: null };
+    s.expressions[0].visible = false;
+    s.expressions.push(s.expressions[0], null, { ...s.expressions[1], id: 'invalid', latex: 'x+' });
+    s.parameters.a.value = 3;
+    s.parameters.b = { value: 0, min: 1, max: -1, step: 0 };
+    s.theme = 'invalid';
+    localStorage.setItem('mathcollaboratory.v1', JSON.stringify(s));
+  });
+  let previous;
+  for (let i = 0; i < 3; i++) {
+    await page.reload(); await expect(page.locator('math-field')).toHaveCount(3);
+    const state = await saved(page);
+    expect(state.parameters.a.value).toBe(3);
+    expect(state.parameters.b).toBeUndefined();
+    expect(state.expressions[0].visible).toBe(false);
+    expect(state.expressions[2].latex).toBe('x+');
+    expect(state.theme).toBe('light');
+    if (previous) expect(state).toEqual(previous);
+    previous = state;
+  }
+});
