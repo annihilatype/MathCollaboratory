@@ -20,9 +20,19 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
       boundingbox: bounds.current, keepaspectratio: true, axis: true,
       showCopyright: false, showNavigation: false, showInfobox: false,
       pan: { enabled: true, needShift: false }, zoom: { wheel: true, needShift: false, factorX: 1.2, factorY: 1.2 },
-      defaultAxes: { x: { name: mode === 'complex' ? 'Re(z)' : 'x', withLabel: true, label: { position: 'rt', offset: mode === 'complex' ? [-50, 15] : [-15, 15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 0 } }, y: { name: mode === 'complex' ? 'Im(z)' : 'y', withLabel: true, label: { position: 'rt', offset: [15, -15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 0 } } },
+      defaultAxes: { x: { name: mode === 'complex' ? 'Re(z)' : 'x', withLabel: true, label: { position: 'rt', offset: mode === 'complex' ? [-50, 15] : [-15, 15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } }, y: { name: mode === 'complex' ? 'Im(z)' : 'y', withLabel: true, label: { position: 'rt', offset: [15, -15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } } },
     });
-    b.create('grid', [], { strokeColor: dark ? '#293349' : '#e5eaf2', strokeOpacity: 0.8 });
+    // JSXGraph derives the spacing from adaptive axis ticks; both grids are
+    // batched SVG curves, rather than a DOM element per line.
+    const gridOptions = {
+      majorStep: 'auto', minorElements: 'auto', forceSquare: 'max',
+      strokeColor: dark ? '#46536b' : '#c9d3e3',
+      major: { face: 'line', strokeWidth: 1, strokeOpacity: 0.85, drawZero: false },
+      minor: { face: 'line', strokeWidth: 0.7, strokeColor: dark ? '#303c50' : '#e3e9f2', strokeOpacity: 0.65, drawZero: false },
+    };
+    const grid = b.create('grid', [b.defaultAxes.x, b.defaultAxes.y], gridOptions) as JXG.Grid & { minorGrid: JXG.Grid };
+    grid.rendNode.setAttribute('data-grid', 'major');
+    grid.minorGrid.rendNode.setAttribute('data-grid', 'minor');
     board.current = b;
     const changed = () => {
       const view = b.getBoundingBox();

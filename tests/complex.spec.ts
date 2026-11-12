@@ -3,8 +3,8 @@ async function formula(page: Page, value: string, index=0) {
   await page.locator('math-field').nth(index).evaluate((field, value)=>{const e=field as HTMLElement & {value:string};e.value=value;e.dispatchEvent(new InputEvent('input',{bubbles:true}));},value);
 }
 const state=(page:Page)=>page.evaluate(()=>JSON.parse(localStorage.getItem('mathcollaboratory.v1')!));
-const complex=(page:Page)=>page.getByRole('button',{name:'Комплексная плоскость',exact:true}).click();
-const real=(page:Page)=>page.getByRole('button',{name:'Вещественная плоскость',exact:true}).click();
+const complex=async(page:Page)=>{const control=page.getByRole('switch',{name:'Комплексная плоскость',exact:true});if(await control.getAttribute('aria-checked') !== 'true')await control.click();};
+const real=async(page:Page)=>{const control=page.getByRole('switch',{name:'Комплексная плоскость',exact:true});if(await control.getAttribute('aria-checked') !== 'false')await control.click();};
 test.beforeEach(async({page})=>{await page.goto('/');await expect(page.locator('math-field')).toHaveCount(2);});
 test('separate expressions, errors and viewports survive switching and reload',async({page})=>{
   await formula(page,'x+3');await page.getByRole('button',{name:'Приблизить',exact:true}).click();const realView=(await state(page)).realViewport;
