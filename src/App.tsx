@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ResetDialog } from './components/ResetDialog';
 import { MathEditor } from './components/MathEditor';
 import { Graph } from './components/Graph';
 import { ParameterControl } from './components/ParameterControl';
@@ -21,7 +22,7 @@ export function App() {
   const patch = (id: string, update: Partial<Expression>) => setState(s => ({ ...s, expressions:s.expressions.map(e => e.id===id ? {...e,...update} : e) }));
   const add = () => setState(s => ({ ...s, expressions:[...s.expressions, { id:crypto.randomUUID(), latex:'', color:COLORS[s.expressions.length%COLORS.length], visible:true }] }));
   return <div className="app-shell">
-    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.1</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
+    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.1.1</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
     <main><aside className="sidebar"><div className="module-heading"><span className="eyebrow">МАТЕМАТИЧЕСКИЕ ИНСТРУМЕНТЫ</span><h1>Графики функций<span>↗</span></h1><p>Исследуйте математику в движении</p></div>
       <div className="section-heading"><h2>Выражения</h2><span>{state.expressions.length}</span></div>
       <div className="expressions">{analyzed.map((e,index) => <article className={`expression-card ${e.error?'has-error':''}`} key={e.id}>
@@ -34,6 +35,6 @@ export function App() {
       {names.some(n=>Object.hasOwn(state.parameters,n)) && <div className="parameters"><div className="section-heading"><h2>Параметры</h2><span>↔</span></div>{names.filter(n=>Object.hasOwn(state.parameters,n)).map(name=><ParameterControl key={name} name={name} parameter={state.parameters[name]} onChange={p=>setState(s=>({...s,parameters:{...s.parameters,[name]:p}}))} />)}</div>}
       <div className="sidebar-footer"><div className="hint"><span>⌨</span><p>Введите функцию с клавиатуры или откройте математическую клавиатуру в поле ввода.<small>sin, cos, tan, ln, log, exp, abs, π, e<br/>log — по основанию 10, ln — натуральный</small></p></div><div className="save-row"><span className={saveError?'error':''}>{saveError?'Не удалось сохранить': '✓ Сохранено на устройстве'}</span><button onClick={()=>setConfirmReset(true)}>Сбросить</button></div></div>
     </aside><Graph plots={plots} parameters={values} theme={state.theme} resetKey={resetKey}/></main>
-    {confirmReset && <div className="modal-backdrop"><section className="reset-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reset-title" onKeyDown={e=>{if(e.key==='Escape')setConfirmReset(false);}}><h2 id="reset-title">Сбросить построения?</h2><p>Выражения, параметры и тема вернутся к исходному состоянию.</p><div><button autoFocus onClick={()=>setConfirmReset(false)}>Отмена</button><button onClick={()=>{setState(initialState());setResetKey(k=>k+1);setConfirmReset(false);}}>Подтвердить сброс</button></div></section></div>}
+    {confirmReset && <ResetDialog onCancel={()=>setConfirmReset(false)} onConfirm={()=>{setState(initialState());setResetKey(k=>k+1);setConfirmReset(false);}}/>}
   </div>;
 }

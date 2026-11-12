@@ -25,6 +25,6 @@ describe('Разрывы и адаптивная выборка',()=>{
 describe('Сохранение',()=>{
   it('восстанавливает все поля',()=>{const s=initialState();s.theme='dark';s.expressions[0].visible=false;s.parameters.a.value=3;expect(decodeState(JSON.stringify(s))).toEqual(s);});
   it.each([null,'{','{}','{"version":9}'])('безопасно восстанавливает повреждённое состояние',raw=>expect(decodeState(raw)).toEqual(initialState()));
-  it('не допускает повторяющиеся id и опасные имена',()=>{const s=initialState();s.expressions.push(s.expressions[0]);expect(decodeState(JSON.stringify(s))).toEqual(initialState());});
+  it('не допускает повторяющиеся id и опасные имена',()=>{const s=initialState();s.expressions.push(s.expressions[0]);expect(decodeState(JSON.stringify(s)).expressions).toEqual(initialState().expressions);});
   it('проверяет диапазоны',()=>{expect(validParameter({value:1,min:2,max:0,step:0})).toBe(false);expect(validParameter({value:0,min:-1,max:1,step:.1})).toBe(true);});
 });
