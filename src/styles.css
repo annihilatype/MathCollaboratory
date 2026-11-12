@@ -3,3 +3,5 @@
 .modal-backdrop{position:fixed;inset:0;z-index:2000;background:#10182d66;display:grid;place-items:center;padding:20px}.reset-dialog{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:25px;max-width:390px;box-shadow:0 16px 70px #0003}.reset-dialog h2{font-size:19px}.reset-dialog p{color:var(--muted);font-size:13px;line-height:1.6}.reset-dialog>div{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.reset-dialog button{border:0;border-radius:7px;padding:10px;font-size:12px;background:var(--hover);color:var(--accent)}
 
 .reset-dialog{color:var(--text);margin:auto}.reset-dialog::backdrop{background:#10182d66}
+
+.mode-switch{display:flex;gap:5px;margin:0 0 20px}.mode-switch button{flex:1;border:1px solid var(--line);border-radius:7px;padding:9px 5px;font-size:10px;background:var(--panel);color:var(--muted)}.mode-switch button[aria-pressed=true]{background:var(--hover);color:var(--accent);border-color:var(--accent)}.object-details{font-size:11px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
