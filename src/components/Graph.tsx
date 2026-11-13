@@ -1,25 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
 import JXG from 'jsxgraph';
+import { drawComplexObjects, type ComplexPlot } from '../complex/render';
+import { REAL_VIEW, COMPLEX_VIEW, validViewport, type Viewport } from '../state/view';
 import type { ParsedExpression } from '../math/expression';
 import { sampleFunction } from '../math/sample';
 export interface Plot { id: string; color: string; parsed: ParsedExpression }
-export function Graph({ plots, parameters, theme, resetKey }: { plots: Plot[]; parameters: Record<string, number>; theme: 'light'|'dark'; resetKey: number }) {
+export function Graph({ plots, parameters, theme, mode = 'real', viewport, onViewportChange, objects = [] }: { plots: Plot[]; parameters: Record<string, number>; theme: 'light'|'dark'; mode?: 'real'|'complex'; viewport?: Viewport; onViewportChange?: (v: Viewport) => void; objects?: ComplexPlot[] }) {
   const host = useRef<HTMLDivElement>(null);
   const board = useRef<JXG.Board | null>(null);
   const curves = useRef<JXG.Curve[]>([]);
   const scope = useRef(parameters); scope.current = parameters;
   const [cursor, setCursor] = useState<[number,number] | null>(null);
-  const bounds = useRef<[number,number,number,number]>([-8,5,8,-5]);
+  const bounds = useRef<Viewport>(viewport ?? (mode === 'complex' ? COMPLEX_VIEW : REAL_VIEW));
+  const viewportCallback = useRef(onViewportChange); viewportCallback.current = onViewportChange;
+  const geometry = useRef<JXG.GeometryElement[]>([]);
   useEffect(() => {
     const dark = theme === 'dark';
     const b = JXG.JSXGraph.initBoard(host.current!, {
       boundingbox: bounds.current, keepaspectratio: true, axis: true,
       showCopyright: false, showNavigation: false, showInfobox: false,
       pan: { enabled: true, needShift: false }, zoom: { wheel: true, needShift: false, factorX: 1.2, factorY: 1.2 },
-      defaultAxes: { x: { name: 'x', withLabel: true, label: { position: 'rt', offset: [-15, 15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 0 } }, y: { name: 'y', withLabel: true, label: { position: 'rt', offset: [15, -15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 0 } } },
+      defaultAxes: { x: { name: mode === 'complex' ? 'Re(z)' : 'x', withLabel: true, label: { position: 'rt', offset: mode === 'complex' ? [-50, 15] : [-15, 15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } }, y: { name: mode === 'complex' ? 'Im(z)' : 'y', withLabel: true, label: { position: 'rt', offset: [15, -15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } } },
     });
-    b.create('grid', [], { strokeColor: dark ? '#293349' : '#e5eaf2', strokeOpacity: 0.8 });
+    // JSXGraph derives the spacing from adaptive axis ticks; both grids are
+    // batched SVG curves, rather than a DOM element per line.
+    const gridOptions = {
+      majorStep: 'auto', minorElements: 'auto', forceSquare: 'max',
+      strokeColor: dark ? '#46536b' : '#c9d3e3',
+      major: { face: 'line', strokeWidth: 1, strokeOpacity: 0.85, drawZero: false },
+      minor: { face: 'line', strokeWidth: 0.7, strokeColor: dark ? '#303c50' : '#e3e9f2', strokeOpacity: 0.65, drawZero: false },
+    };
+    const grid = b.create('grid', [b.defaultAxes.x, b.defaultAxes.y], gridOptions) as JXG.Grid & { minorGrid: JXG.Grid };
+    grid.rendNode.setAttribute('data-grid', 'major');
+    grid.minorGrid.rendNode.setAttribute('data-grid', 'minor');
     board.current = b;
+    const changed = () => {
+      const view = b.getBoundingBox();
+      if (host.current) {
+        host.current.dataset.unitX = String(b.unitX); host.current.dataset.unitY = String(b.unitY);
+        host.current.dataset.viewport = JSON.stringify(view);
+      }
+      if (validViewport(view)) { bounds.current = view; viewportCallback.current?.(view); }
+    };
+    b.on('boundingbox', changed);
+
     const observer = new ResizeObserver(() => {
       if (!host.current || host.current.parentElement!.clientWidth === 0) return;
       const bb = b.getBoundingBox(), cx = (bb[0]+bb[2])/2, cy=(bb[1]+bb[3])/2;
@@ -30,7 +54,7 @@ export function Graph({ plots, parameters, theme, resetKey }: { plots: Plot[]; p
     });
     observer.observe(host.current!.parentElement!);
     b.on('move', (event: Event) => { const pos = b.getUsrCoordsOfMouse(event as MouseEvent); setCursor([pos[0],pos[1]]); });
-    return () => { bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; JXG.JSXGraph.freeBoard(b); board.current=null; };
+    return () => { b.off('boundingbox', changed); bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; geometry.current=[]; JXG.JSXGraph.freeBoard(b); board.current=null; };
   }, [theme]);
   useEffect(() => {
     const b = board.current!;
@@ -47,13 +71,18 @@ export function Graph({ plots, parameters, theme, resetKey }: { plots: Plot[]; p
     });
     b.unsuspendUpdate();
   }, [plots, theme]);
+  useEffect(() => {
+    const b = board.current!; b.suspendUpdate();
+    geometry.current.forEach(object => b.removeObject(object));
+    geometry.current = drawComplexObjects(b, objects);
+    b.unsuspendUpdate();
+  }, [objects, theme]);
   useEffect(() => { board.current?.update(); }, [parameters]);
-  useEffect(() => { board.current?.setBoundingBox([-8,5,8,-5],true); }, [resetKey]);
-  function reset() { board.current?.setBoundingBox([-8,5,8,-5],true); }
-  return <section className="graph-panel" aria-label="Координатная плоскость">
+  function reset() { board.current?.setBoundingBox(mode === 'complex' ? COMPLEX_VIEW : REAL_VIEW,true); }
+  return <section className="graph-panel" aria-label={mode === 'complex' ? 'Комплексная плоскость' : 'Координатная плоскость'}>
     <div className="graph" ref={host} onMouseLeave={() => setCursor(null)} />
-    <div className="graph-caption"><span className="live-dot" />Координатная плоскость <span className="radians">Радианы</span></div>
+    <div className="graph-caption"><span className="live-dot" />{mode === 'complex' ? 'Комплексная плоскость' : 'Координатная плоскость'} <span className="radians">Радианы</span></div>
     <div className="graph-tools"><button aria-label="Приблизить" title="Приблизить" onClick={() => board.current?.zoomIn()}>+</button><button aria-label="Отдалить" title="Отдалить" onClick={() => board.current?.zoomOut()}>−</button><div /><button aria-label="Стандартный масштаб" title="Стандартный масштаб" onClick={reset}>⌂</button></div>
-    <div className="graph-bottom"><span>Перетаскивайте плоскость · Колёсико для масштаба</span><output>{cursor ? `x: ${cursor[0].toFixed(2)}   y: ${cursor[1].toFixed(2)}` : 'x: —   y: —'}</output></div>
+    <div className="graph-bottom"><span>Перетаскивайте плоскость · Колёсико для масштаба</span><output>{cursor ? `${mode === 'complex' ? 'Re' : 'x'}: ${cursor[0].toFixed(2)}   ${mode === 'complex' ? 'Im' : 'y'}: ${cursor[1].toFixed(2)}` : mode === 'complex' ? 'Re: —   Im: —' : 'x: —   y: —'}</output></div>
   </section>;
 }

@@ -10,7 +10,7 @@ export function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onC
   }, []);
   return <dialog ref={dialog} className="reset-dialog" aria-labelledby="reset-title" onCancel={event => { event.preventDefault(); onCancel(); }}>
     <h2 id="reset-title">Сбросить построения?</h2>
-    <p>Выражения, параметры и тема вернутся к исходному состоянию.</p>
+    <p>Построения и область просмотра текущего режима будут сброшены. Данные другого режима сохранятся.</p>
     <div><button autoFocus onClick={onCancel}>Отмена</button><button onClick={onConfirm}>Подтвердить сброс</button></div>
   </dialog>;
 }
