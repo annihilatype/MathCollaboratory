@@ -10,6 +10,20 @@ const unit=(g:Locator)=>g.evaluate(e=>Number((e as HTMLElement).dataset.unitY));
 const view=(g:Locator)=>g.evaluate(e=>JSON.parse((e as HTMLElement).dataset.viewport!));
 test.beforeEach(async({page})=>{await page.goto('/');await expect(page.locator('math-field')).toHaveCount(2);await complex(page).click();await expect(source(page)).toHaveAttribute('data-viewport',/.+/);});
 
+test('mapping controls exist only in complex mode and retain settings while hidden',async({page})=>{
+  await complex(page).click();await expect(toggle(page)).toHaveCount(0);
+  await expect(page.locator('.mapping-controls')).toHaveCount(0);
+  await complex(page).click();await expect(toggle(page)).not.toBeChecked();
+  await toggle(page).click();await formula(page,'conj(z)');
+  await expect(page.getByRole('heading',{name:'Исходная плоскость',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Плоскость образов',exact:true})).toBeVisible();
+  await complex(page).click();await expect(toggle(page)).toHaveCount(0);
+  await expect(page.locator('math-field[aria-label="Формула отображения"]')).toHaveCount(0);
+  await page.reload();await expect(toggle(page)).toHaveCount(0);
+  await complex(page).click();await expect(toggle(page)).toBeChecked();
+  expect(await page.locator('math-field[aria-label="Формула отображения"]').evaluate(e=>(e as HTMLElement&{value:string}).value)).toBe('conj(z)');
+});
+
 test('animated layout retains board identities, center and unit scale through rapid toggles',async({page})=>{
   const s=source(page),beforeUnit=await unit(s),beforeView=await view(s),id=await s.getAttribute('id');
   const fullWidth=(await s.boundingBox())!.width;

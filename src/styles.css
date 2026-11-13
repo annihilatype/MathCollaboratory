@@ -37,3 +37,21 @@
 
 .add-segment{align-self:flex-end;margin-top:8px;padding:6px 2px;color:var(--accent)}
 @media(max-width:580px){.mapping-hint{display:none}.mapping-editor-inner>.formula-row{margin-bottom:12px}}
+
+/* Clearly separate source and image without changing object colors. */
+.complex-workspace{gap:0;padding:0;background:var(--bg);transition:grid-template-columns 300ms ease,gap 300ms ease,padding 300ms ease}
+.complex-workspace.has-mapping{gap:12px;padding:10px;background:var(--line)}
+.plane-slot{flex-direction:column;border:1px solid transparent;transition:border-radius 300ms ease,border-color 300ms ease}
+.has-mapping .plane-slot{border-color:var(--line);border-radius:12px;background:var(--bg)}
+.plane-heading{display:flex;align-items:center;gap:10px;flex:none;height:0;opacity:0;overflow:hidden;background:var(--panel);padding:0 14px;transition:height 300ms ease,opacity 300ms ease}
+.has-mapping .plane-heading{height:48px;opacity:1;border-bottom:1px solid var(--line)}
+.plane-heading h2{font-size:13px;line-height:18px;color:var(--text)}
+.plane-subtitle{display:block;font-size:10px;line-height:15px;color:var(--muted)}
+.plane-badge{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:8px;background:var(--hover);color:var(--accent);font:italic 23px Georgia,serif}
+.image-heading .plane-badge{background:#e3f4f0;color:#137e75}
+[data-theme=dark] .image-heading .plane-badge{background:#193d3b;color:#7cd5cb}
+.has-mapping .graph-caption{display:none}.has-mapping .image-note{top:106px}
+.image-slot:before{display:none}
+@media(max-width:1100px){.complex-workspace{transition:grid-template-rows 300ms ease,height 300ms ease,gap 300ms ease,padding 300ms ease}}
+@media(max-width:580px){.complex-workspace.has-mapping{gap:10px;padding:8px;height:max(768px,104dvh)}}
+@media(prefers-reduced-motion:reduce){.complex-workspace,.plane-slot,.plane-heading{transition:none}}
