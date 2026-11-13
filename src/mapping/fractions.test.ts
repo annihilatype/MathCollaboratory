@@ -1,4 +1,5 @@
 import { it, expect, describe } from 'vitest';
+import { parseExpression } from '../math/expression';
 import { parseMapping } from './expression';
 import { parseComplexGeometry } from '../complex/geometry';
 describe('MathLive fractions, including legal single-token TeX arguments',()=>{
@@ -17,4 +18,12 @@ describe('MathLive fractions, including legal single-token TeX arguments',()=>{
   });
   it.each(['\\frac','\\frac{1}','\\frac{}{z}','\\dfrac{1}{}','\\frac{1}{z','\\frac1-','\\frac{1}{\\unknown{z}}','\\frac{1}{z[0]}'])('diagnoses missing/unsafe fraction arguments: %s',s=>expect(()=>parseMapping(s)).toThrow());
   it('fractions also work in source complex coordinates',()=>expect(parseComplexGeometry('z=\\dfrac{1+i}{2}')).toMatchObject({value:{re:.5,im:.5}}));
+});
+
+describe('Same MathLive fraction tokens in the real calculator',()=>{
+  it.each(['\\frac12 x','\\frac1x','\\dfrac12 x','\\tfrac{1}{2}x','\\frac1{\\frac{x+1}{2}}'])('%s is numerical, not a spurious parameter',s=>{
+    const f=parseExpression(s);expect(f.parameters).toEqual([]);
+    for(const x of [-2,2,4]){const expected=s.includes('x+1')?2/(x+1):s==='\\frac1x'?1/x:x/2;expect(f.evaluate(x,{})).toBeCloseTo(expected,12);}
+  });
+  it.each(['\\frac','\\frac1','\\frac{}{x}'])('diagnoses incomplete %s',s=>expect(()=>parseExpression(s)).toThrow());
 });

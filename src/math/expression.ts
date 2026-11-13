@@ -17,6 +17,14 @@ export function latexToExpression(latex: string): string {
     i++;
     return '(' + read(true) + ')';
   }
+  function fractionArgument(): string {
+    while (/\s/.test(source[i] ?? '') && i < source.length) i++;
+    if(source[i]==='{') { const value=group(); if(value==='()')throw new Error('У дроби пустой числитель или знаменатель.'); return value; }
+    if(/[a-zA-Z0-9]/.test(source[i] ?? '') && i<source.length)return '('+source[i++]+')';
+    const command=/^\\(frac|dfrac|tfrac)(?![a-zA-Z])/.exec(source.slice(i));
+    if(command){i+=command[0].length;return '('+fractionArgument()+'/'+fractionArgument()+')';}
+    throw new Error('У дроби нужны числитель и знаменатель: \\frac{1}{x}.');
+  }
   function read(nested = false): string {
     let out = '';
     while (i < source.length) {
@@ -30,7 +38,7 @@ export function latexToExpression(latex: string): string {
         const command = /^[a-zA-Z]+/.exec(source.slice(i))?.[0];
         if (!command) throw new Error('Неизвестная математическая команда.');
         i += command.length;
-        if (command === 'frac' || command === 'dfrac' || command === 'tfrac') out += '(' + group() + '/' + group() + ')';
+        if (command === 'frac' || command === 'dfrac' || command === 'tfrac') out += '(' + fractionArgument() + '/' + fractionArgument() + ')';
         else if (command === 'sqrt') out += ' sqrt' + group();
         else if (command === 'exponentialE') out += ' e ';
         else if (command === 'pi') out += ' pi ';

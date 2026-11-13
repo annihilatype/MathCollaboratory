@@ -24,6 +24,7 @@ test('MathLive keyboard emits short fractions; Joukowski and nested display frac
   for(const [s,expected] of [['\\dfrac{z+\\frac{1}{z}}{2}','1.25'],['\\tfrac{1}{2}(1+\\frac{1}{z})','0.75'],['\\frac{1}{\\frac{z+1}{2}}','0.6666667']]){
     await input(formula(page),s);await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.locator('.mapping-value')).toContainText(`w = ${expected} + 0i`);
   }
+  await mode(page).click();await input(field(page),'\\frac12 x');await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByRole('button',{name:/Создать ползунок/})).toHaveCount(0);
 });
 
 test('exact disk, ring, half-plane intersections and boundary styles survive zoom, pan and reload',async({page})=>{
