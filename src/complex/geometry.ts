@@ -4,9 +4,10 @@ export interface ComplexCoordinate { re: number; im: number }
 export type ComplexGeometry =
   | { kind: 'point'; value: ComplexCoordinate; modulus: number; argument: number | null }
   | { kind: 'circle'; center: ComplexCoordinate; radius: number }
+  | { kind: 'segment'; start: ComplexCoordinate; end: ComplexCoordinate }
   | { kind: 'line'; axis: 're' | 'im'; value: number };
 // Future mappings can consume/return coordinates without depending on JSXGraph or React.
-export interface ComplexMapping { evaluate: (z: ComplexCoordinate) => ComplexCoordinate }
+export interface ComplexMapping { evaluate: (z: ComplexCoordinate) => ComplexCoordinate | null; cost: number }
 export function parseComplexGeometry(latex: string): ComplexGeometry {
   const source = complexSource(latex).trim();
   if (!source) throw new Error('Введите комплексное число или уравнение объекта.');
@@ -25,6 +26,13 @@ export function parseComplexGeometry(latex: string): ComplexGeometry {
       return { kind: 'circle', center: { re: offset.re === 0 ? 0 : -offset.re, im: offset.im === 0 ? 0 : -offset.im }, radius: rhs.re };
     }
     throw new Error('Поддерживаются z = число, |z − (центр)| = радиус, Re(z) = число и Im(z) = число.');
+  }
+  if(parts.length===1){
+    const node=parseComplexAst(source) as MathNode & {name:string;fn:MathNode;args:MathNode[]};
+    if(node.type==='FunctionNode' && node.fn.type==='SymbolNode' && node.name==='segment' && node.args.length===2){
+      const start=evaluateComplexNode(node.args[0]),end=evaluateComplexNode(node.args[1]);
+      return {kind:'segment',start:{re:start.re,im:start.im},end:{re:end.re,im:end.im}};
+    }
   }
   const value = evaluateComplex(parts.length === 2 ? parts[1] : source);
   return { kind: 'point', value: { re: value.re, im: value.im }, modulus: Math.hypot(value.re, value.im), argument: value.re === 0 && value.im === 0 ? null : Math.atan2(value.im, value.re) };

@@ -70,3 +70,12 @@ pnpm test:browser
 Добавлены отдельные проверки WebKit в CI, нативного touch pinch в Chromium,
 нормализации wheel deltaMode, ограничений масштаба и окружностей без скобок.
 Подробности и ограничения: [docs/plane-controls-v0.2.1.md](docs/plane-controls-v0.2.1.md).
+
+## v0.3 — комплексные отображения
+
+233 модульных теста, 29 сценариев Chromium, TypeScript и production build.
+Проверены безопасный AST-вычислитель, параметрические образы окружностей и
+отрезков, разрывы у полюсов, drag точек, независимые окна, сохранение,
+CSS-анимации, мобильная компоновка и reduced motion. WebKit-проект в CI
+расширен с четырёх до восьми сценариев.
+Подробный отчёт: [docs/complex-mappings-v0.3.md](docs/complex-mappings-v0.3.md).

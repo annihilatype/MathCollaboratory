@@ -19,7 +19,7 @@ test('mode switch supports mouse, Tab, Space and Enter and restores its state',a
   await page.getByRole('button',{name:'Тёмная тема',exact:true}).click();
   await expect(toggle).toBeChecked();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
   await page.emulateMedia({reducedMotion:'reduce'});
-  expect(await page.locator('.switch-thumb').evaluate(e=>getComputedStyle(e).transitionDuration)).toBe('0s');
+  expect(await toggle.locator('.switch-thumb').evaluate(e=>getComputedStyle(e).transitionDuration)).toBe('0s');
 });
 
 for(const mode of ['real','complex'])test(`${mode}: adaptive major/minor grid stays bounded through zoom and pan`,async({page})=>{

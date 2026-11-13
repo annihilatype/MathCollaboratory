@@ -1,11 +1,13 @@
 import { REAL_VIEW, COMPLEX_VIEW, validViewport, type Viewport } from './view';
 export interface Expression { id: string; latex: string; color: string; visible: boolean }
 export interface Parameter { value: number; min: number; max: number; step: number }
-export interface AppState { version: 1; expressions: Expression[]; parameters: Record<string, Parameter>; theme: 'light' | 'dark'; mode: 'real' | 'complex'; realViewport: Viewport; complex: { expressions: Expression[]; viewport: Viewport } }
+export interface MappingState { enabled:boolean; latex:string; viewport:Viewport }
+export const initialMapping=():MappingState=>({enabled:false,latex:"z^2",viewport:[...COMPLEX_VIEW]});
+export interface AppState { version: 1; expressions: Expression[]; parameters: Record<string, Parameter>; theme: 'light' | 'dark'; mode: 'real' | 'complex'; mapping:MappingState; realViewport: Viewport; complex: { expressions: Expression[]; viewport: Viewport } }
 export const COLORS = ['#7561d9', '#e18a37', '#239f91', '#d75478', '#3983ce', '#ae6ab9'];
 export const STORAGE_KEY = 'mathcollaboratory.v1';
 export const initialComplex = () => ({ expressions: [{ id: 'complex-point', latex: 'z=2+3i', color: COLORS[0], visible: true }, { id: 'complex-circle', latex: '|z|=2', color: COLORS[1], visible: true }], viewport: [...COMPLEX_VIEW] as Viewport });
-export const initialState = (): AppState => ({ version: 1, theme: 'light', mode: 'real', realViewport: [...REAL_VIEW], complex: initialComplex(), parameters: { a: { value: 2, min: -5, max: 5, step: 0.1 } }, expressions: [
+export const initialState = (): AppState => ({ version: 1, theme: 'light', mode: 'real', mapping:initialMapping(), realViewport: [...REAL_VIEW], complex: initialComplex(), parameters: { a: { value: 2, min: -5, max: 5, step: 0.1 } }, expressions: [
   { id: 'quadratic', latex: '\\frac{x^2}{4}-2', color: COLORS[0], visible: true },
   { id: 'sine', latex: 'a\\sin(x)', color: COLORS[1], visible: true },
 ] });
@@ -56,6 +58,7 @@ export function decodeState(raw: string | null): AppState {
       ? recoverExpressions(s.complex.expressions) : complexDefaults.expressions;
     return { version: 1, theme: s.theme === 'dark' ? 'dark' : 'light', expressions, parameters,
       mode: s.mode === 'complex' ? 'complex' : 'real',
+      mapping:{enabled:s.mapping?.enabled===true,latex:typeof s.mapping?.latex==='string'?s.mapping.latex:initialMapping().latex,viewport:validViewport(s.mapping?.viewport)?s.mapping.viewport:initialMapping().viewport},
       realViewport: validViewport(s.realViewport) ? s.realViewport : [...REAL_VIEW],
       complex: { expressions: complexExpressions, viewport: validViewport(s.complex?.viewport) ? s.complex.viewport : complexDefaults.viewport } };
 
