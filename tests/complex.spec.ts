@@ -65,6 +65,7 @@ test('legacy save migrates, plane pans and cursor coordinates respond',async({pa
   await expect.poll(async()=>(await state(page)).complex.viewport[0]).not.toBe(before[0]);
   await expect(page.locator('output')).toContainText('Re:');
   await page.getByRole('button',{name:'Стандартный масштаб',exact:true}).click();
+  await formula(page,'|z-1-i|=2',1);
   await page.screenshot({path:'test-results/complex-plane-dark.png'});
   await page.getByRole('button',{name:'Светлая тема',exact:true}).click();
   await page.screenshot({path:'test-results/complex-plane-light.png'});

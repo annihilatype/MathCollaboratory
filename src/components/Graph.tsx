@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import JXG from 'jsxgraph';
+import { attachWheelNavigation } from './wheelNavigation';
+import { constrainViewport } from './planeNavigation';
 import { drawComplexObjects, type ComplexPlot } from '../complex/render';
 import { REAL_VIEW, COMPLEX_VIEW, validViewport, type Viewport } from '../state/view';
 import type { ParsedExpression } from '../math/expression';
@@ -19,7 +21,7 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
     const b = JXG.JSXGraph.initBoard(host.current!, {
       boundingbox: bounds.current, keepaspectratio: true, axis: true,
       showCopyright: false, showNavigation: false, showInfobox: false,
-      pan: { enabled: true, needShift: false }, zoom: { wheel: true, needShift: false, factorX: 1.2, factorY: 1.2 },
+      pan: { enabled: true, needShift: false }, zoom: { wheel: false, min: 1e-8, max: 1e8, needShift: false, factorX: 1.2, factorY: 1.2 },
       defaultAxes: { x: { name: mode === 'complex' ? 'Re(z)' : 'x', withLabel: true, label: { position: 'rt', offset: mode === 'complex' ? [-50, 15] : [-15, 15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } }, y: { name: mode === 'complex' ? 'Im(z)' : 'y', withLabel: true, label: { position: 'rt', offset: [15, -15], strokeColor: dark ? '#aab6ca' : '#67758a' }, strokeColor: dark ? '#8593aa' : '#8693a8', ticks: { strokeColor: dark ? '#65758d' : '#b5c0cf', label: { strokeColor: dark ? '#aab6ca' : '#67758a' }, minorTicks: 4, minorHeight: 4, minTicksDistance: 12 } } },
     });
     // JSXGraph derives the spacing from adaptive axis ticks; both grids are
@@ -34,8 +36,11 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
     grid.rendNode.setAttribute('data-grid', 'major');
     grid.minorGrid.rendNode.setAttribute('data-grid', 'minor');
     board.current = b;
+    const detachWheel = attachWheelNavigation(host.current!, b);
     const changed = () => {
       const view = b.getBoundingBox();
+      const bounded = constrainViewport(view);
+      if (bounded !== view) { b.setBoundingBox(bounded,true,'update'); return; }
       if (host.current) {
         host.current.dataset.unitX = String(b.unitX); host.current.dataset.unitY = String(b.unitY);
         host.current.dataset.viewport = JSON.stringify(view);
@@ -54,7 +59,7 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
     });
     observer.observe(host.current!.parentElement!);
     b.on('move', (event: Event) => { const pos = b.getUsrCoordsOfMouse(event as MouseEvent); setCursor([pos[0],pos[1]]); });
-    return () => { b.off('boundingbox', changed); bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; geometry.current=[]; JXG.JSXGraph.freeBoard(b); board.current=null; };
+    return () => { detachWheel(); b.off('boundingbox', changed); bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; geometry.current=[]; JXG.JSXGraph.freeBoard(b); board.current=null; };
   }, [theme]);
   useEffect(() => {
     const b = board.current!;
@@ -83,6 +88,6 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
     <div className="graph" ref={host} onMouseLeave={() => setCursor(null)} />
     <div className="graph-caption"><span className="live-dot" />{mode === 'complex' ? 'Комплексная плоскость' : 'Координатная плоскость'} <span className="radians">Радианы</span></div>
     <div className="graph-tools"><button aria-label="Приблизить" title="Приблизить" onClick={() => board.current?.zoomIn()}>+</button><button aria-label="Отдалить" title="Отдалить" onClick={() => board.current?.zoomOut()}>−</button><div /><button aria-label="Стандартный масштаб" title="Стандартный масштаб" onClick={reset}>⌂</button></div>
-    <div className="graph-bottom"><span>Перетаскивайте плоскость · Колёсико для масштаба</span><output>{cursor ? `${mode === 'complex' ? 'Re' : 'x'}: ${cursor[0].toFixed(2)}   ${mode === 'complex' ? 'Im' : 'y'}: ${cursor[1].toFixed(2)}` : mode === 'complex' ? 'Re: —   Im: —' : 'x: —   y: —'}</output></div>
+    <div className="graph-bottom"><span>Прокрутка — перемещение · Ctrl + прокрутка — масштаб</span><output>{cursor ? `${mode === 'complex' ? 'Re' : 'x'}: ${cursor[0].toFixed(2)}   ${mode === 'complex' ? 'Im' : 'y'}: ${cursor[1].toFixed(2)}` : mode === 'complex' ? 'Re: —   Im: —' : 'x: —   y: —'}</output></div>
   </section>;
 }
