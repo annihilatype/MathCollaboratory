@@ -8,7 +8,7 @@ function configureKeyboard(complexMode: boolean) { window.mathVirtualKeyboard.la
   ['\\sin', '\\cos', '\\tan', '4', '5', '6', '\\times', '\\frac{#0}{#0}'],
   ['\\ln', '\\log', '\\exp', '1', '2', '3', '(', ')'],
   ['\\pi', 'e', '\\sqrt{#0}', '0', '.', '#@^{#0}', '|#0|', '[backspace]'],
-  ...(complexMode ? [['z', 'i', '\\operatorname{conj}(#0)', '\\operatorname{abs}(#0)', '\\operatorname{arg}(#0)', '\\operatorname{Re}(#0)', '\\operatorname{Im}(#0)']] : []),
+  ...(complexMode ? [['z', 'i', '\\operatorname{conj}(#0)', '\\operatorname{abs}(#0)', '\\operatorname{arg}(#0)', '\\operatorname{Re}(#0)', '\\operatorname{Im}(#0)'], ['<', '>', '\\le', '\\ge', '\\land', '=', '|#0|']] : []),
   ['[left]', '[right]', { label: 'Готово', command: 'hideVirtualKeyboard' }],
 ] }]; }
 export function MathEditor({ value, onChange, label, complexMode = false }: { value: string; onChange: (value: string) => void; label: string; complexMode?: boolean }) {

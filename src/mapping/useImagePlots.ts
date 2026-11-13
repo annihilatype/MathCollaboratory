@@ -1,3 +1,4 @@
+import { mapRegion } from '../regions/transform';
 import { useMemo, useRef } from 'react';
 import type { ComplexPlot, DrawablePlot } from '../complex/render';
 import type { ComplexMapping } from '../complex/geometry';
@@ -16,6 +17,8 @@ export function useImagePlots(objects:ComplexPlot[],mapping:ComplexMapping|null)
       if(g.kind==='point'){
         const w=mapping.evaluate(g.value);
         if(w&&Math.max(Math.abs(w.re),Math.abs(w.im))<=1e9)result.push({...p,geometry:{kind:'point',value:w,modulus:Math.hypot(w.re,w.im),argument:w.re===0&&w.im===0?null:Math.atan2(w.im,w.re)}});
+      }else if(g.kind==='region'){
+        const image=mapRegion(g,mapping);if(image.region)result.push({...p,geometry:image.region});
       }else{
         const curve=parameterize(g);if(!curve)continue;
         const key=JSON.stringify(g)+p.color+budget,old=cache.current.get(p.id);

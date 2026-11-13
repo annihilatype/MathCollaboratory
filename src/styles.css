@@ -55,3 +55,5 @@
 @media(max-width:1100px){.complex-workspace{transition:grid-template-rows 300ms ease,height 300ms ease,gap 300ms ease,padding 300ms ease}}
 @media(max-width:580px){.complex-workspace.has-mapping{gap:10px;padding:8px;height:max(768px,104dvh)}}
 @media(prefers-reduced-motion:reduce){.complex-workspace,.plane-slot,.plane-heading{transition:none}}
+
+.region-notice{display:block;margin-top:5px;color:var(--text);background:var(--panel);padding:6px 8px;border:1px solid var(--line);border-radius:6px;max-width:360px}
