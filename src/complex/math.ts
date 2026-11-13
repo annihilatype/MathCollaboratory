@@ -1,11 +1,11 @@
-import { parse, complex, add, subtract, multiply, divide, pow, conj, abs, arg, type Complex, type MathNode } from 'mathjs';
+import { parse, complex, add, subtract, multiply, divide, conj, abs, arg, exp, sin, cos, type Complex, type MathNode } from 'mathjs';
 
 // Deliberately interpret only allowlisted AST nodes; never use mathjs evaluate/compile.
 export function complexSource(latex: string): string {
   if (latex.length > 500) throw new Error('Выражение слишком длинное (максимум 500 символов).');
   let s = latex.replace(/\\(?:left|right)/g, '').replace(/\\[,;! ]/g, '')
-    .replace(/\\(?:operatorname|mathrm)\{(conj|abs|arg|Re|Im|re|im|i)\}/g, '$1')
-    .replace(/\\(?:Re|real)/g, 'Re').replace(/\\(?:Im|imag)/g, 'Im')
+    .replace(/\\(?:operatorname|mathrm)\{(conj|abs|arg|Re|Im|re|im|i|exp|sin|cos|segment)\}/g, '$1')
+    .replace(/\\imaginaryI/g, 'i').replace(/\\(exp|sin|cos)(?![a-zA-Z])/g, '$1').replace(/\\(?:Re|real)/g, 'Re').replace(/\\(?:Im|imag)/g, 'Im')
     .replace(/\\(?:cdot|times)/g, '*').replace(/−/g, '-').replace(/\\imaginaryI/g, 'i');
   // Balanced groups support nested fractions and conjugates.
   let i = 0;
@@ -41,40 +41,59 @@ export function parseComplexAst(source: string): MathNode {
   return root;
 }
 export function evaluateComplex(source: string): Complex { return evaluateComplexNode(parseComplexAst(source)); }
-export function evaluateComplexNode(root: MathNode): Complex {
+export function evaluateComplexNode(root: MathNode): Complex { return buildComplexEvaluator(root)(); }
+
+// Build only our allowlisted closures from the mathjs AST. This is not
+// MathNode.compile/evaluate: no dynamic code, scopes, assignments or accessors.
+export function buildComplexEvaluator(root: MathNode, mapping = false): (z?: Complex) => Complex {
   let count = 0;
+  type Evaluate = (z?: Complex) => Complex;
   const finite = (z: Complex): Complex => {
     if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) throw new Error('Результат не определён или слишком велик.');
     return z;
   };
-  function visit(node: MathNode): Complex {
-    if (++count > 150) throw new Error('Выражение слишком сложное.');
+  function build(node: MathNode): Evaluate {
+    if (++count > (mapping ? 80 : 150)) throw new Error('Выражение слишком сложное.');
     const n = node as MathNode & { value: number; name: string; content: MathNode; args: MathNode[]; op: string; fn: MathNode };
-    if (node.type === 'ConstantNode' && typeof n.value === 'number') return finite(complex(n.value, 0));
-    if (node.type === 'SymbolNode' && n.name === 'i') return complex(0, 1);
-    if (node.type === 'ParenthesisNode') return visit(n.content);
+    if (node.type === 'ConstantNode' && typeof n.value === 'number') { const value=finite(complex(n.value,0)); return ()=>value; }
+    if (node.type === 'SymbolNode') {
+      if(n.name==='i')return ()=>complex(0,1);
+      if(mapping && n.name==='z')return z=>{if(!z)throw new Error('Не задано z.');return z;};
+    }
+    if (node.type === 'ParenthesisNode') return build(n.content);
     if (node.type === 'OperatorNode' && ['+', '-', '*', '/', '^'].includes(n.op) && n.args.length <= 2) {
-      const a = visit(n.args[0]);
-      if (n.args.length === 1 && ['+', '-'].includes(n.op)) return n.op === '-' ? complex(-a.re, -a.im) : a;
+      const a = build(n.args[0]);
+      if (n.args.length === 1 && ['+', '-'].includes(n.op)) return z=>{const v=a(z);return n.op==='-'?complex(-v.re,-v.im):v;};
       if (n.args.length !== 2) throw new Error('Оператор не поддерживается.');
-      const b = visit(n.args[1]);
-      if (n.op === '/' && b.re === 0 && b.im === 0) throw new Error('Деление на ноль.');
-      if (n.op === '^') {
-        if (b.im !== 0 || !Number.isInteger(b.re) || Math.abs(b.re) > 1000) throw new Error('Поддерживаются целочисленные степени от −1000 до 1000.');
-        if (a.re === 0 && a.im === 0 && b.re <= 0) throw new Error('Степень нуля не определена.');
-        return finite(pow(a, b.re) as Complex);
-      }
-      return finite((n.op === '+' ? add(a,b) : n.op === '-' ? subtract(a,b) : n.op === '*' ? multiply(a,b) : divide(a,b)) as Complex);
+      const b = build(n.args[1]);
+      return z=>{
+        const u=a(z),v=b(z);
+        if(n.op==='/' && v.re===0 && v.im===0)throw new Error('Деление на ноль.');
+        if(n.op==='^'){
+          if(v.im!==0 || !Number.isInteger(v.re) || Math.abs(v.re)>1000)throw new Error('Поддерживаются целочисленные степени от −1000 до 1000.');
+          if(u.re===0 && u.im===0 && v.re<=0)throw new Error('Степень нуля не определена.');
+          // Integer powers avoid polar-form roundoff such as (1+i)^2
+          // acquiring a spurious real part. All arithmetic stays in mathjs.
+          let n=Math.abs(v.re),base=v.re<0?finite(divide(complex(1,0),u) as Complex):u,result=complex(1,0);
+          while(n>0){if(n%2)result=finite(multiply(result,base) as Complex);n=Math.floor(n/2);if(n)base=finite(multiply(base,base) as Complex);}
+          return result;
+        }
+        return finite((n.op==='+'?add(u,v):n.op==='-'?subtract(u,v):n.op==='*'?multiply(u,v):divide(u,v)) as Complex);
+      };
     }
     if (node.type === 'FunctionNode' && n.fn.type === 'SymbolNode' && n.args.length === 1) {
-      const a = visit(n.args[0]);
-      if (n.name === 'conj') return conj(a) as Complex;
-      if (['abs', 'arg', 'Re', 'Im', 're', 'im'].includes(n.name)) {
-        if (n.name === 'arg' && a.re === 0 && a.im === 0) throw new Error('Аргумент нуля не определён.');
-        return finite(complex(n.name === 'abs' ? abs(a) as number : n.name === 'arg' ? arg(a) : ['Re','re'].includes(n.name) ? a.re : a.im, 0));
-      }
+      const allowed=['conj','abs','arg','Re','Im','re','im',...(mapping?['exp','sin','cos']:[])];
+      if(!allowed.includes(n.name))throw new Error('Эта функция пока не поддерживается.');
+      const a=build(n.args[0]);
+      return z=>{
+        const v=a(z);
+        if(n.name==='conj')return conj(v) as Complex;
+        if(mapping && ['exp','sin','cos'].includes(n.name))return finite((n.name==='exp'?exp(v):n.name==='sin'?sin(v):cos(v)) as Complex);
+        if(n.name==='arg' && v.re===0 && v.im===0)throw new Error('Аргумент нуля не определён.');
+        return finite(complex(n.name==='abs'?abs(v) as number:n.name==='arg'?arg(v):['Re','re'].includes(n.name)?v.re:v.im,0));
+      };
     }
     throw new Error('Недопустимое выражение. Разрешены числа, i, +, −, *, /, целые степени, conj, abs, arg, Re, Im.');
   }
-  return finite(visit(root));
+  return build(root);
 }
