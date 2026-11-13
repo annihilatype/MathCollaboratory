@@ -27,7 +27,15 @@ for(const mode of ['real','complex']){
     expect(span(await view(page))).toBeCloseTo(span(zoomed),7);
     const toggle=page.getByRole('switch',{name:'Комплексная плоскость'});await toggle.click();await toggle.click();
     expect(span(await view(page))).toBeCloseTo(span(zoomed),7);
-    const box2=(await graph(page).boundingBox())!;await page.mouse.move(box2.x+80,box2.y+140);await page.mouse.down();await page.mouse.move(box2.x+160,box2.y+170,{steps:6});await page.mouse.up();
+    const box2=(await graph(page).boundingBox())!;
+    await page.mouse.move(box2.x+80,box2.y+140);await page.mouse.down();
+    // JSXGraph throttles pointer moves. Space a synthetic drag over frames,
+    // as a real drag would be, rather than sending all events in one burst.
+    for(let i=1;i<=6;i++){
+      await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+      await page.mouse.move(box2.x+80+i*80/6,box2.y+140+i*30/6);
+    }
+    await page.mouse.up();
     await expect.poll(async()=>(await view(page))[0]).not.toBe(zoomed[0]);
     await expect.poll(async()=>graph(page).evaluate(e=>Math.abs(Number((e as HTMLElement).dataset.unitX)/Number((e as HTMLElement).dataset.unitY)-1))).toBeLessThan(1e-8);
     await page.getByRole('button',{name:'Стандартный масштаб',exact:true}).click();expect(span(await view(page))).toBeCloseTo(10,7);
