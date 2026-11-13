@@ -30,7 +30,7 @@ describe('Complex geometry', () => {
     expect(parseComplexGeometry('Re(z)=1')).toEqual({kind:'line',axis:'re',value:1});
     expect(parseComplexGeometry('\\operatorname{Im}(z)=-2')).toEqual({kind:'line',axis:'im',value:-2});
   });
-  it.each(['|z|=-1','|z|=i','|z-1+i|=2','|z-(1+i)+(2)|=2','z^2=1','Re(z)=i','z=1=2','z=z+1'])('rejects ambiguous/unsupported geometry %s',s=>expect(()=>parseComplexGeometry(s)).toThrow());
+  it.each(['|z|=-1','|z|=i','z^2=1','Re(z)=i','z=1=2','z=z+1'])('rejects ambiguous/unsupported geometry %s',s=>expect(()=>parseComplexGeometry(s)).toThrow());
 });
 describe('Additive state migration and isolation',()=>{
   it('loads a genuine v0.1.1 save without losing real data',()=>{

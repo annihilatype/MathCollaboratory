@@ -30,12 +30,18 @@ export function complexSource(latex: string): string {
   if (result.includes('\\')) throw new Error('Команда пока не поддерживается. Используйте i, conj, abs, arg, Re, Im.');
   return result;
 }
-export function evaluateComplex(source: string): Complex {
+export function parseComplexAst(source: string): MathNode {
   let open = false;
   source = source.replace(/\|/g, () => { open = !open; return open ? 'abs(' : ')'; });
   if (open) throw new Error('Не закрыт знак модуля.');
   let root: MathNode;
   try { root = parse(source); } catch { throw new Error('Проверьте скобки и операторы комплексного выражения.'); }
+  let nodes = 0;
+  root.traverse(() => { if (++nodes > 150) throw new Error('Выражение слишком сложное.'); });
+  return root;
+}
+export function evaluateComplex(source: string): Complex { return evaluateComplexNode(parseComplexAst(source)); }
+export function evaluateComplexNode(root: MathNode): Complex {
   let count = 0;
   const finite = (z: Complex): Complex => {
     if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) throw new Error('Результат не определён или слишком велик.');
