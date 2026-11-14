@@ -6,7 +6,8 @@ export interface RegionConstraint { a:number; b:number; c:number; d:number; stri
 export interface Region { kind:'region'; constraints:RegionConstraint[]; excluded:ComplexCoordinate[] }
 export type RegionTransform =
   | { kind:'mobius'; a:ComplexCoordinate; b:ComplexCoordinate; c:ComplexCoordinate; d:ComplexCoordinate; conjugate:boolean; excluded:ComplexCoordinate[] }
-  | { kind:'power'; exponent:number };
+  | { kind:'power'; exponent:number }
+  | { kind:'exponential' };
 export function constraint(a:number,b:number,c:number,d:number,strict:boolean):RegionConstraint {
   const scale=Math.max(Math.abs(a),Math.abs(b),Math.abs(c),Math.abs(d));
   if(!Number.isFinite(scale))throw new Error('Границы области слишком велики для точного построения.');

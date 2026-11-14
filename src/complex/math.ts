@@ -3,9 +3,17 @@ import { parse, complex, add, subtract, multiply, divide, conj, abs, arg, exp, s
 // Deliberately interpret only allowlisted AST nodes; never use mathjs evaluate/compile.
 export function complexSource(latex: string): string {
   if (latex.length > 500) throw new Error('Выражение слишком длинное (максимум 500 символов).');
-  let s = latex.replace(/\\(?:left|right)/g, '').replace(/\\[,;! ]/g, '')
+  if(/\\placeholder\b/.test(latex))throw new Error('Заполните пустое поле выражения.');
+  let names=latex;
+  // MathLive's physical Re/Im shortcuts nest wrappers, e.g. operatorname{mathrm{Re}}.
+  // Unwrap known names only; never strip arbitrary commands or their payloads.
+  for(let depth=0;depth<16;depth++){
+    const next=names.replace(/\\(?:operatorname|mathrm|mathop)\s*\{\s*(conj|abs|arg|Re|Im|re|im|i|exp|sin|cos|segment)\s*\}/g,'$1');
+    if(next===names)break;names=next;
+  }
+  let s = names.replace(/\\(?:left|right)/g, '').replace(/\\[,;! ]/g, '')
     .replace(/\\(?:operatorname|mathrm)\{(conj|abs|arg|Re|Im|re|im|i|exp|sin|cos|segment)\}/g, '$1')
-    .replace(/\\imaginaryI/g, 'i').replace(/\\(exp|sin|cos)(?![a-zA-Z])/g, '$1').replace(/\\(?:Re|real)/g, 'Re').replace(/\\(?:Im|imag)/g, 'Im')
+    .replace(/\\imaginaryI/g, 'i').replace(/\\(exp|sin|cos)(?![a-zA-Z])/g, '$1').replace(/\\(?:Re|real)(?![a-zA-Z])/g, 'Re').replace(/\\(?:Im|imag)(?![a-zA-Z])/g, 'Im')
     .replace(/\\(?:leq|le)(?![a-zA-Z])/g, '<=').replace(/\\(?:geq|ge)(?![a-zA-Z])/g, '>=').replace(/\\(?:lt|gt)(?![a-zA-Z])/g, m=>m==='\\lt'?'<':'>').replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/\\(?:land|wedge)(?![a-zA-Z])/g, ' and ')
     .replace(/\\(?:cdot|times)/g, '*').replace(/−/g, '-').replace(/\\imaginaryI/g, 'i');
   // Balanced groups support nested fractions and conjugates.
@@ -37,7 +45,8 @@ export function complexSource(latex: string): string {
     return out;
   }
   const result = read();
-  if (result.includes('\\')) throw new Error('Команда пока не поддерживается. Используйте i, conj, abs, arg, Re, Im.');
+  const unknown=/\\([a-zA-Z]+|.)/.exec(result);
+  if (unknown) throw new Error(`Команда \\${unknown[1]} не поддерживается. Для вещественной и мнимой частей используйте Re(z), Im(z).`);
   return result;
 }
 export function parseComplexAst(source: string): MathNode {

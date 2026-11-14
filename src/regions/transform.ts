@@ -1,4 +1,5 @@
 import { complex, add, subtract, multiply, divide, conj, type Complex, type MathNode } from 'mathjs';
+import { inversePlan, type InversePlan } from './inverse';
 import { evaluateComplexNode } from '../complex/math';
 import type { ComplexCoordinate, ComplexMapping } from '../complex/geometry';
 import { boundary, constraint, contains, type Region, type RegionTransform } from './model';
@@ -56,27 +57,35 @@ export function regionTransform(root:MathNode):RegionTransform|undefined {
     return null;
   }
   const n=unwrap(root);
+  if(n.type==='FunctionNode'&&n.fn.type==='SymbolNode'&&n.name==='exp'&&n.args.length===1&&unwrap(n.args[0]).type==='SymbolNode'&&unwrap(n.args[0]).name==='z')return {kind:'exponential'};
   if(n.type==='OperatorNode'&&n.op==='^'&&n.args.length===2&&unwrap(n.args[0]).type==='SymbolNode'&&unwrap(n.args[0]).name==='z'){
     const exponent=constant(n.args[1]);if(exponent?.im===0&&[2,3].includes(exponent.re))return {kind:'power',exponent:exponent.re};
   }
   return visit(n)??undefined;
 }
-export interface RegionImage { region:Region|null; notice:string }
+export interface RegionImage { region:Region|null; notice:string; accuracy:'exact'|'approximate'|'unsupported'; approximation?:InversePlan }
 export function mapRegion(region:Region,mapping:ComplexMapping):RegionImage {
   const m=mapping.regionTransform;
-  const unsupported={region:null,notice:'Образ области не закрашен: точное преобразование для этой формулы и области пока не поддерживается.'};
+  const unsupported:RegionImage={region:null,accuracy:'unsupported',notice:'Образ области не закрашен: точное преобразование для этой формулы и области пока не поддерживается.'};
   if(!m)return unsupported;
+  function approximate():RegionImage {
+    if(m?.kind!=='power'&&m?.kind!=='exponential')return unsupported;
+    const approximation=inversePlan(region,m);
+    if(!approximation)return {...unsupported,notice:'Образ области не закрашен: для численного метода нужна ограниченная область с допустимым диапазоном координат и не более 32 ветвей экспоненты.'};
+    return {region:null,approximation,accuracy:'approximate',notice:'Приближённый образ: закрашены подтверждённые участки. Границы и непроверенные участки пропущены.'};
+  }
   try{
+    if(m.kind==='exponential')return approximate();
     if(m.kind==='power'){
-      if(region.excluded.some(p=>!zero(p)))return unsupported;
+      if(region.excluded.some(p=>!zero(p)))return approximate();
       const constraints=[];
       for(const q of region.constraints){
-        const b=boundary(q);if(b.kind!=='circle'||b.x!==0||b.y!==0)return unsupported;
+        const b=boundary(q);if(b.kind!=='circle'||b.x!==0||b.y!==0)return approximate();
         const r=b.radius**m.exponent,sign=b.inside?1:-1;
         if(r===0)throw new Error('precision');
         constraints.push(constraint(sign,0,0,-sign*r*r,q.strict));
       }
-      return {region:{kind:'region',constraints,excluded:region.excluded.map(p=>({...p}))},notice:''};
+      return {region:{kind:'region',constraints,excluded:region.excluded.map(p=>({...p}))},notice:'',accuracy:'exact'};
     }
     const p=as(m.d),q=times(z(-1),m.b),r=times(z(-1),m.c),s=as(m.a);
     const norm=(v:ComplexCoordinate)=>v.re*v.re+v.im*v.im;
@@ -97,6 +106,6 @@ export function mapRegion(region:Region,mapping:ComplexMapping):RegionImage {
     if(!zero(m.c))excluded.push(over(m.a,m.c)); // No finite source maps to the image of infinity.
     if(excluded.some(p=>!Number.isFinite(p.re)||!Number.isFinite(p.im)))return unsupported;
     const punctures=excluded.filter(p=>contains({kind:'region',constraints,excluded:[]},p));
-    return {region:{kind:'region',constraints,excluded:punctures},notice:''};
-  }catch{return {region:null,notice:'Образ области не закрашен: границы выходят за доступную числовую точность.'};}
+    return {region:{kind:'region',constraints,excluded:punctures},notice:'',accuracy:'exact'};
+  }catch{return {region:null,accuracy:'unsupported',notice:'Образ области не закрашен: границы выходят за доступную числовую точность.'};}
 }

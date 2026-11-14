@@ -1,5 +1,6 @@
 import { type MathNode } from 'mathjs';
 import { circleOffset } from './offset';
+import { setConditions } from '../regions/setNotation';
 import { parseRegion } from '../regions/parse';
 import type { Region, RegionTransform } from '../regions/model';
 import { complexSource, evaluateComplex, evaluateComplexNode, parseComplexAst } from './math';
@@ -13,9 +14,10 @@ export type ComplexGeometry =
 // Future mappings can consume/return coordinates without depending on JSXGraph or React.
 export interface ComplexMapping { evaluate: (z: ComplexCoordinate) => ComplexCoordinate | null; cost: number; regionTransform?: RegionTransform }
 export function parseComplexGeometry(latex: string): ComplexGeometry {
-  const source = complexSource(latex).trim();
+  const conditions=setConditions(latex);
+  const source = complexSource(conditions??latex).trim();
   if (!source) throw new Error('Введите комплексное число или уравнение объекта.');
-  if (/[<>]/.test(source) || /\band\b/.test(source)) return parseRegion(parseComplexAst(source));
+  if (conditions!==null || /[<>]/.test(source) || /\band\b/.test(source)) return parseRegion(parseComplexAst(source));
   const parts = source.split('=');
   if (parts.length > 2) throw new Error('Ожидается одно равенство.');
   const left = parts[0].trim();

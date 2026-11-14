@@ -64,7 +64,7 @@ export function Graph({ plots, parameters, theme, mode = 'real', viewport, onVie
     });
     observer.observe(host.current!.parentElement!);
     b.on('move', (event: Event) => { const pos = b.getUsrCoordsOfMouse(event as MouseEvent); setCursor([pos[0],pos[1]]); });
-    return () => { detachWheel(); b.off('boundingbox', changed); bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; layer.current=null; JXG.JSXGraph.freeBoard(b); board.current=null; };
+    return () => { detachWheel(); b.off('boundingbox', changed); bounds.current = b.getBoundingBox(); observer.disconnect(); curves.current=[]; layer.current?.clear(); layer.current=null; JXG.JSXGraph.freeBoard(b); board.current=null; };
   }, [theme,axisSymbol]);
   useEffect(() => {
     const b = board.current!;
