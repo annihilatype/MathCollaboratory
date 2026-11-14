@@ -32,7 +32,9 @@ export function linearBounds(source:Region,x:number,y:number,offset=0):[number,n
     if(b.kind==='circle'&&b.inside){const center=x*b.x+y*b.y;lo=Math.max(lo,center-norm*b.radius);hi=Math.min(hi,center+norm*b.radius);}
     if(b.kind==='line'){
       const n=b.b*b.b+b.c*b.c,k=(x*b.b+y*b.c)/n;
-      if(Math.abs(x*b.c-y*b.b)<=1e-14*norm*Math.sqrt(n)){if(k>0)hi=Math.min(hi,-k*b.d);else lo=Math.max(lo,-k*b.d);}
+      // Unbounded directions forbid a 'nearly parallel' tolerance: even a
+      // tiny transverse coefficient makes this functional unbounded.
+      if(Number.isFinite(k)&&x===k*b.b&&y===k*b.c){if(k>0)hi=Math.min(hi,-k*b.d);else lo=Math.max(lo,-k*b.d);}
     }
   }
   // Also combine independent x/y bounds where they are available.

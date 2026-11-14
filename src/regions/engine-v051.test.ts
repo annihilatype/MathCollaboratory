@@ -23,6 +23,9 @@ describe('Composable, complete inverse plans v0.5.1',()=>{
    const source:Region={kind:'region',constraints:[{a:0,b:1,c:1,d:-1,strict:true},{a:0,b:-1,c:-1,d:-1,strict:true}],excluded:[]};
    const mapped=mapRegion(source,parseMapping('exp((1+i)*z)'));expect(mapped.approximation).toBeDefined();expect(point(mapped.approximation!,Math.E)).toBe(true);expect(point(mapped.approximation!,-1)).toBe(false);
  });
+ it('does not mistake nearly parallel constraints for bounds on an unbounded direction',()=>{
+   const m=mapRegion(region('|Re(z)|<1'),parseMapping('exp((1e-15+i)*z)'));expect(m.approximation).toBeUndefined();expect(m.diagnostic?.code).toBe('unbounded-log-branches');
+ });
  it.each([2,3,4,8])('all %i roots and topology for powers',n=>{
    const p=plan('{z:0<arg(z)<pi/2}',`z^${n}`);
    expect(point(p,0)).toBe(false);expect(point(p,0,1)).toBe(true);expect(point(p,1)).toBe(n>4);expect(point(p,-1)).toBe(n>2);
