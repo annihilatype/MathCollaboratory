@@ -13,6 +13,7 @@ function configureKeyboard(complexMode: boolean) { window.mathVirtualKeyboard.la
 ] }]; }
 export function MathEditor({ value, onChange, label, complexMode = false }: { value: string; onChange: (value: string) => void; label: string; complexMode?: boolean }) {
   useEffect(() => { configureKeyboard(complexMode); }, [complexMode]);
+  const complexRef=useRef(complexMode);complexRef.current=complexMode;
   const [error, setError] = useState('');
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
@@ -24,6 +25,16 @@ export function MathEditor({ value, onChange, label, complexMode = false }: { va
     mf.smartFence = true;
     mf.setAttribute('aria-label', label);
     mf.value = value;
+    mf.addEventListener('keydown', event=>{
+      if(!complexRef.current||event.key!=='|'||event.ctrlKey||event.metaKey)return;
+      if(!/^(?:\\left\s*)?(?:\\lbrace|\\\{|\{)\s*z\s*:/.test(mf.value))return;
+      if(mf.selection.ranges.some(([a,b])=>a!==b))return;
+      // MathLive 0.111.4 loses nested smart | fences inside lbrace/rbrace.
+      // Use the same literal atoms as its working virtual modulus key.
+      event.preventDefault();event.stopImmediatePropagation();
+      if(mf.getValue(mf.position,mf.position+1)==='|')mf.executeCommand('moveToNextChar');
+      else mf.executeCommand(['insert','|#0|']);
+    },{capture:true});
     mf.addEventListener('input', () => {
       if (mf.value.length > 500 && mf.value.length >= valueRef.current.length) {
         mf.setValue(valueRef.current, { silenceNotifications: true });

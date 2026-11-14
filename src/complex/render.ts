@@ -1,20 +1,21 @@
 import JXG from 'jsxgraph';
+import { createApproximationLayer, type ImageRegion } from '../regions/renderApproximation';
 import { createRegionLayer } from '../regions/render';
 import type { ComplexGeometry, ComplexCoordinate } from './geometry';
 import type { ImagePath } from '../mapping/sample';
 import type { Viewport } from '../state/view';
 export interface ComplexPlot { id:string; color:string; geometry:ComplexGeometry }
 export interface ImageCurve { kind:'image'; sample:(view:Viewport,unit:number)=>ImagePath }
-export interface DrawablePlot { id:string; color:string; geometry:ComplexGeometry|ImageCurve }
+export interface DrawablePlot { id:string; color:string; geometry:ComplexGeometry|ImageCurve|ImageRegion }
 export type PointMove = (id:string,z:ComplexCoordinate)=>void;
 export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined){
-  const regions=createRegionLayer(board);
+  const regions=createRegionLayer(board),approximations=createApproximationLayer(board);
   const entries=new Map<string,{kind:string;signature:string;object:JXG.GeometryElement;aux:JXG.GeometryElement[]}>();
   const remove=(id:string)=>{const e=entries.get(id)!;board.removeObject(e.object);e.aux.forEach(p=>board.removeObject(p));entries.delete(id);};
   return {
     update(plots:DrawablePlot[]){
-      regions.update(plots);
-      plots=plots.filter(p=>p.geometry.kind!=='region');
+      regions.update(plots);approximations.update(plots);
+      plots=plots.filter(p=>p.geometry.kind!=='region'&&p.geometry.kind!=='region-image');
       const ids=new Set(plots.map(p=>p.id));for(const id of entries.keys())if(!ids.has(id))remove(id);
       board.suspendUpdate();
       for(const {id,color,geometry:g} of plots){
@@ -32,7 +33,7 @@ export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined
         if(old && old.signature===signature)continue;
         if(old)remove(id);
         let object:JXG.GeometryElement;const aux:JXG.GeometryElement[]=[];
-        if(g.kind==='region')continue;
+        if(g.kind==='region'||g.kind==='region-image')continue;
         if(g.kind==='point'){
           const point=board.create('point',[g.value.re,g.value.im],{...style,fixed:!onMove(),name:'',size:4,withLabel:false});
           point.on('drag',()=>onMove()?.(id,{re:point.X(),im:point.Y()}));object=point;
@@ -50,6 +51,6 @@ export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined
       }
       board.unsuspendUpdate();
     },
-    clear(){regions.clear();for(const id of [...entries.keys()])remove(id);},
+    clear(){regions.clear();approximations.clear();for(const id of [...entries.keys()])remove(id);},
   };
 }
