@@ -1,3 +1,4 @@
+import type {Diagnostic} from '../math/diagnostics';
 import { geometrySource } from './parameters';
 import { type MathNode } from 'mathjs';
 import { circleOffset } from './offset';
@@ -13,7 +14,7 @@ export type ComplexGeometry =
   | { kind: 'segment'; start: ComplexCoordinate; end: ComplexCoordinate }
   | { kind: 'line'; axis: 're' | 'im'; value: number };
 // Future mappings can consume/return coordinates without depending on JSXGraph or React.
-export interface ComplexMapping { evaluate: (z: ComplexCoordinate) => ComplexCoordinate | null; cost: number; regionTransform?: RegionTransform }
+export interface ComplexMapping { evaluate: (z: ComplexCoordinate) => ComplexCoordinate | null; cost: number; regionTransform?: RegionTransform; regionDiagnostic?:Diagnostic }
 export function parseComplexGeometry(latex: string,parameters:Readonly<Record<string,number>>={}): ComplexGeometry {
   const conditions=setConditions(latex);
   const source = complexSource(conditions??latex).trim();

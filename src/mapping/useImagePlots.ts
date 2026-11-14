@@ -1,5 +1,5 @@
 import { partsOf } from '../regions/model';
-import { tileRegionImage, type RegionTiling } from '../regions/inverse';
+import { tileRegionImage,createRegionTilingTask, type RegionTiling } from '../regions/inverse';
 import { mapRegion } from '../regions/transform';
 import { useMemo, useRef } from 'react';
 import type { ComplexPlot, DrawablePlot } from '../complex/render';
@@ -22,15 +22,19 @@ export function useImagePlots(objects:ComplexPlot[],mapping:ComplexMapping|null)
         if(w&&Math.max(Math.abs(w.re),Math.abs(w.im))<=1e9)result.push({...p,geometry:{kind:'point',value:w,modulus:Math.hypot(w.re,w.im),argument:w.re===0&&w.im===0?null:Math.atan2(w.im,w.re)}});
       }else if(g.kind==='region'&&!parameterize(g)){
         const image=mapRegion(g,mapping),plan=image.approximation;
-        const key='region:'+JSON.stringify(g)+p.color+regionCount,old=cache.current.get(p.id);
-        if(old?.key===key&&old.mapping===mapping){result.push(old.plot);continue;}
+        const key='region:'+JSON.stringify(g)+regionCount,old=cache.current.get(p.id);
+        if(old?.key===key&&old.mapping===mapping){result.push(old.plot.color===p.color?old.plot:{...old.plot,color:p.color});continue;}
         let plot:DrawablePlot|undefined;
         if(image.region)plot={...p,geometry:image.region};
         else if(plan){
           const domainCost=Math.max(1,Math.ceil(partsOf(g).reduce((n,r)=>n+r.constraints.length+r.excluded.length+(r.excludedSegments?.length??0),0)/8));
           const cellBudget=Math.max(8,Math.min(6144,Math.floor(24000/(regionCount*plan.branches*domainCost))));
           let previousKey='',previous:RegionTiling;
-          plot={...p,geometry:{kind:'region-image',plan,sample:(view,unit,quality='settled')=>{
+          plot={...p,geometry:{kind:'region-image',plan,begin:(view,unit,quality)=>{
+            const k=JSON.stringify(view)+unit+quality;if(k===previousKey)return {step:()=>previous};
+            const task=createRegionTilingTask(plan,view,unit,quality==='interactive'?Math.min(512,cellBudget):cellBudget,quality==='interactive'?6:2);
+            return {step:n=>{const result=task.step(n);if(result){previous=result;previousKey=k;}return result;}};
+          },sample:(view,unit,quality='settled')=>{
             const k=JSON.stringify(view)+unit+quality;if(k===previousKey)return previous;
             previous=tileRegionImage(plan,view,unit,quality==='interactive'?Math.min(512,cellBudget):cellBudget,quality==='interactive'?6:2);previousKey=k;return previous;
           }}};
@@ -38,8 +42,8 @@ export function useImagePlots(objects:ComplexPlot[],mapping:ComplexMapping|null)
         if(plot){cache.current.set(p.id,{key,mapping,plot});result.push(plot);}else cache.current.delete(p.id);
       }else{
         const curve=parameterize(g);if(!curve)continue;
-        const key=JSON.stringify(g)+p.color+budget,old=cache.current.get(p.id);
-        if(old?.key===key && old.mapping===mapping){result.push(old.plot);continue;}
+        const key=JSON.stringify(g)+budget,old=cache.current.get(p.id);
+        if(old?.key===key && old.mapping===mapping){result.push(old.plot.color===p.color?old.plot:{...old.plot,color:p.color});continue;}
         let previousKey='',previous:ImagePath;
         const plot:DrawablePlot={id:p.id,color:p.color,geometry:{kind:'image',sample:(view,unit)=>{
           const k=JSON.stringify(view)+unit;if(k===previousKey)return previous;

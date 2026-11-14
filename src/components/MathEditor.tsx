@@ -1,19 +1,12 @@
+import {trackEditor} from '../input/editorSession';
 import { useEffect, useRef, useState } from 'react';
 import { MathfieldElement } from 'mathlive';
 MathfieldElement.fontsDirectory = new URL(`${import.meta.env.BASE_URL}fonts`, document.baseURI).href;
 MathfieldElement.soundsDirectory = null;
 MathfieldElement.locale = 'ru';
-function configureKeyboard(complexMode: boolean) { window.mathVirtualKeyboard.layouts = [{ label: 'Математика', rows: [
-  ['x', 'a', 'b', '7', '8', '9', '+', '-'],
-  ['\\sin', '\\cos', '\\tan', '4', '5', '6', '\\times', '\\frac{#0}{#0}'],
-  ['\\ln', '\\log', '\\exp', '1', '2', '3', '(', ')'],
-  ['\\pi', 'e', '\\sqrt{#0}', '0', '.', '#@^{#0}', '|#0|', '[backspace]'],
-  ...(complexMode ? [['z', 'i', '\\operatorname{conj}(#0)', '\\operatorname{abs}(#0)', '\\operatorname{arg}(#0)', '\\operatorname{Re}(#0)', '\\operatorname{Im}(#0)'], ['<', '>', '\\le', '\\ge', '\\land', '=', '|#0|'], ['\\notin','\\lor','\\land','\\rho','\\pi','[',']']] : []),
-  ['[left]', '[right]', { label: 'Готово', command: 'hideVirtualKeyboard' }],
-] }]; }
-export function MathEditor({ value, onChange, label, complexMode = false }: { value: string; onChange: (value: string) => void; label: string; complexMode?: boolean }) {
-  useEffect(() => { configureKeyboard(complexMode); }, [complexMode]);
+export function MathEditor({ value, onChange, label, complexMode = false, mapping=false }: { value: string; onChange: (value: string) => void; label: string; complexMode?: boolean; mapping?:boolean }) {
   const complexRef=useRef(complexMode);complexRef.current=complexMode;
+  const mappingRef=useRef(mapping);mappingRef.current=mapping;
   const [error, setError] = useState('');
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
@@ -48,7 +41,8 @@ export function MathEditor({ value, onChange, label, complexMode = false }: { va
     });
     host.current!.append(mf); field.current = mf;
     mf.inlineShortcuts={...mf.inlineShortcuts,notin:'\\notin'};
-    return () => { mf.remove(); field.current = null; };
+    const untrack=trackEditor(mf,()=>mappingRef.current?'mapping':complexRef.current?'complex':'real');
+    return () => { untrack();mf.remove(); field.current = null; };
   }, []);
   useEffect(() => { if (field.current && field.current.value !== value) field.current.setValue(value, { silenceNotifications: true }); }, [value]);
   useEffect(() => { field.current?.setAttribute('aria-label', label); }, [label]);

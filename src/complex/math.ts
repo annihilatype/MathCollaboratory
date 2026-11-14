@@ -1,4 +1,5 @@
-import { parse, complex, add, subtract, multiply, divide, conj, abs, arg, exp, sin, cos, type Complex, type MathNode } from 'mathjs';
+import {COMPLEX_FUNCTIONS, canonicalName, normalizeOperationLatex} from '../math/operations';
+import { parse, complex, add, subtract, multiply, divide, exp, type Complex, type MathNode } from 'mathjs';
 
 // Deliberately interpret only allowlisted AST nodes; never use mathjs evaluate/compile.
 export function complexSource(latex: string): string {
@@ -8,13 +9,13 @@ export function complexSource(latex: string): string {
   // MathLive's physical Re/Im shortcuts nest wrappers, e.g. operatorname{mathrm{Re}}.
   // Unwrap known names only; never strip arbitrary commands or their payloads.
   for(let depth=0;depth<16;depth++){
-    const next=names.replace(/\\(?:operatorname|mathrm|mathop)\s*\{\s*(conj|abs|arg|Arg|Re|Im|re|im|i|pi|e|exp|sin|cos|segment)\s*\}/g,'$1');
+    const next=normalizeOperationLatex(names);
     if(next===names)break;names=next;
   }
   names=names.replace(/\\lbrack(?![a-zA-Z])/g,'[').replace(/\\rbrack(?![a-zA-Z])/g,']');
   let s = names.replace(/\\(?:left|right)/g, '').replace(/\\[,;! ]/g, ' ')
     .replace(/\\(?:operatorname|mathrm)\{(conj|abs|arg|Arg|Re|Im|re|im|i|pi|e|exp|sin|cos|segment)\}/g, '$1')
-    .replace(/\\pi(?![a-zA-Z])/g, 'pi').replace(/π/g,'pi').replace(/\\rho(?![a-zA-Z])/g,'rho').replace(/\\exponentialE(?![a-zA-Z])/g,'e').replace(/\\(?:arg|Arg)(?![a-zA-Z])/g,'arg').replace(/\\(?:notin)(?![a-zA-Z])/g,' notin ').replace(/\\(?:neq|ne)(?![a-zA-Z])/g,'!=').replace(/≠/g,'!=').replace(/∉/g,' notin ').replace(/\\(?:lor|vee|cup)(?![a-zA-Z])/g,' or ').replace(/\\cap(?![a-zA-Z])/g,' and ').replace(/\\imaginaryI/g, 'i').replace(/\\(exp|sin|cos)(?![a-zA-Z])/g, '$1').replace(/\\(?:Re|real)(?![a-zA-Z])/g, 'Re').replace(/\\(?:Im|imag)(?![a-zA-Z])/g, 'Im')
+    .replace(/\\pi(?![a-zA-Z])/g, 'pi').replace(/π/g,'pi').replace(/\\rho(?![a-zA-Z])/g,'rho').replace(/\\exponentialE(?![a-zA-Z])/g,'e').replace(/\\(?:arg|Arg)(?![a-zA-Z])/g,'arg').replace(/\\(?:notin)(?![a-zA-Z])/g,' notin ').replace(/\\(?:neq|ne)(?![a-zA-Z])/g,'!=').replace(/≠/g,'!=').replace(/∉/g,' notin ').replace(/\\(?:lor|vee|cup)(?![a-zA-Z])/g,' or ').replace(/\\cap(?![a-zA-Z])/g,' and ').replace(/\\imaginaryI/g, 'i').replace(/\\([a-zA-Z]+)(?![a-zA-Z])/g,(whole,name:string)=>name!=='sqrt'&&Object.hasOwn(COMPLEX_FUNCTIONS,canonicalName(name))?canonicalName(name):whole).replace(/\\(?:Re|real)(?![a-zA-Z])/g, 'Re').replace(/\\(?:Im|imag)(?![a-zA-Z])/g, 'Im')
     .replace(/\\(?:leq|le)(?![a-zA-Z])/g, '<=').replace(/\\(?:geq|ge)(?![a-zA-Z])/g, '>=').replace(/\\(?:lt|gt)(?![a-zA-Z])/g, m=>m==='\\lt'?'<':'>').replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/\\(?:land|wedge)(?![a-zA-Z])/g, ' and ')
     .replace(/\\(?:cdot|times)/g, '*').replace(/−/g, '-').replace(/\\imaginaryI/g, 'i');
   // Balanced groups support nested fractions and conjugates.
@@ -39,6 +40,7 @@ export function complexSource(latex: string): string {
       if (s[i] === '}') { i++; if (!nested) throw new Error('Лишняя скобка.'); return out; }
       if (s[i] === '{') { i++; out += '(' + read(true) + ')'; }
       else if (/^\\(?:frac|dfrac|tfrac)(?![a-zA-Z])/.test(s.slice(i))) { i += /^\\[a-z]+/.exec(s.slice(i))![0].length; out += '(' + fractionArgument() + '/' + fractionArgument() + ')'; }
+      else if(/^\\sqrt(?![a-zA-Z])/.test(s.slice(i))){i+=5;out+='sqrt'+group();}
       else if(s[i]==='_'){i++;const sub=s[i]==='{'?group().slice(1,-1):s[i++];if(!/^[a-zA-Z0-9]+$/.test(sub??''))throw new Error('Индекс параметра должен состоять из букв и цифр.');out+='_'+sub+' ';}
       else if (s.startsWith('\\overline', i)) { i += 9; out += 'conj' + group(); }
       else out += s[i++];
@@ -83,8 +85,6 @@ export function buildComplexEvaluator(root: MathNode, mapping = false, parameter
       if(n.name==='i')return ()=>complex(0,1);
       if(mapping&&n.name==='z')return z=>{if(!z)throw new Error('Не задано z.');return z;};
       if(!['z','w','i','pi','e'].includes(n.name)&&Object.hasOwn(parameters,n.name)){const value=parameters[n.name];if(!Number.isFinite(value))throw new Error(`Параметр ${n.name} должен быть конечным вещественным числом.`);return ()=>complex(value,0);}
-      if(n.name==='i')return ()=>complex(0,1);
-      if(mapping && n.name==='z')return z=>{if(!z)throw new Error('Не задано z.');return z;};
     }
     if (node.type === 'ParenthesisNode') return build(n.content);
     if (node.type === 'OperatorNode' && ['+', '-', '*', '/', '^'].includes(n.op) && n.args.length <= 2) {
@@ -96,30 +96,26 @@ export function buildComplexEvaluator(root: MathNode, mapping = false, parameter
         const u=a(z),v=b(z);
         if(n.op==='/' && v.re===0 && v.im===0)throw new Error('Деление на ноль.');
         if(n.op==='^'){
+          if(isEuler(n.args[0]))return finite(exp(v) as Complex);
           if(v.im!==0 || !Number.isInteger(v.re) || Math.abs(v.re)>1000)throw new Error('Поддерживаются целочисленные степени от −1000 до 1000.');
           if(u.re===0 && u.im===0 && v.re<=0)throw new Error('Степень нуля не определена.');
           // Integer powers avoid polar-form roundoff such as (1+i)^2
           // acquiring a spurious real part. All arithmetic stays in mathjs.
-          let n=Math.abs(v.re),base=v.re<0?finite(divide(complex(1,0),u) as Complex):u,result=complex(1,0);
-          while(n>0){if(n%2)result=finite(multiply(result,base) as Complex);n=Math.floor(n/2);if(n)base=finite(multiply(base,base) as Complex);}
+          let power=Math.abs(v.re),base=v.re<0?finite(divide(complex(1,0),u) as Complex):u,result=complex(1,0);
+          while(power>0){if(power%2)result=finite(multiply(result,base) as Complex);power=Math.floor(power/2);if(power)base=finite(multiply(base,base) as Complex);}
           return result;
         }
         return finite((n.op==='+'?add(u,v):n.op==='-'?subtract(u,v):n.op==='*'?multiply(u,v):divide(u,v)) as Complex);
       };
     }
     if (node.type === 'FunctionNode' && n.fn.type === 'SymbolNode' && n.args.length === 1) {
-      const allowed=['conj','abs','arg','Arg','Re','Im','re','im',...(mapping?['exp','sin','cos']:[])];
-      if(!allowed.includes(n.name))throw new Error('Эта функция пока не поддерживается.');
-      const a=build(n.args[0]);
-      return z=>{
-        const v=a(z);
-        if(n.name==='conj')return conj(v) as Complex;
-        if(mapping && ['exp','sin','cos'].includes(n.name))return finite((n.name==='exp'?exp(v):n.name==='sin'?sin(v):cos(v)) as Complex);
-        if(['arg','Arg'].includes(n.name) && v.re===0 && v.im===0)throw new Error('Аргумент нуля не определён.');
-        return finite(complex(n.name==='abs'?abs(v) as number:['arg','Arg'].includes(n.name)?(Math.atan2(v.im,v.re)===-Math.PI?Math.PI:Math.atan2(v.im,v.re)):['Re','re'].includes(n.name)?v.re:v.im,0));
-      };
+      const name=canonicalName(n.name),fn=COMPLEX_FUNCTIONS[name];
+      if(!fn)throw new Error(`Операция ${name} не поддерживается для комплексных чисел.`);
+      const a=build(n.args[0]);return z=>{const u=a(z),v=fn(complex(u.re===0?0:u.re,u.im===0?0:u.im));return finite(typeof v==='number'?complex(v,0):v);};
     }
     throw new Error('Недопустимое выражение. Разрешены числа, i, +, −, *, /, целые степени, conj, abs, arg, Re, Im.');
   }
   return build(root);
 }
+
+export function isEuler(node:MathNode):boolean {if(node.type==='ParenthesisNode')return isEuler((node as MathNode&{content:MathNode}).content);return node.type==='SymbolNode'&&(node as MathNode&{name:string}).name==='e';}

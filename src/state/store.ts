@@ -1,4 +1,4 @@
-import { validComplexParameter } from '../complex/parameters';
+import { validPersistedComplexParameter } from '../complex/parameters';
 import { REAL_VIEW, COMPLEX_VIEW, validViewport, type Viewport } from './view';
 export interface Expression { id: string; latex: string; color: string; visible: boolean }
 export interface Parameter { value: number; min: number; max: number; step: number; positive?:boolean; integer?:boolean }
@@ -50,7 +50,7 @@ export function decodeState(raw: string | null): AppState {
     const parameters: Record<string, Parameter> = {};
     if (s.parameters && typeof s.parameters === 'object') {
       for (const [name, p] of Object.entries(s.parameters)) {
-        if ((!/^[a-wyzA-Z](?:_[a-zA-Z0-9]+)?$/.test(name)&&!validComplexParameter(name)) || ['e','pi','constructor','prototype'].includes(name) || !p) continue;
+        if ((!/^[a-wyzA-Z](?:_[a-zA-Z0-9]+)?$/.test(name)&&!validPersistedComplexParameter(name)) || ['e','pi','constructor','prototype'].includes(name) || !p) continue;
         const normalized = normalizeParameter(p);
         if (normalized) parameters[name] = normalized;
       }

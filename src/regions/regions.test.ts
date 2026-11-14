@@ -64,7 +64,7 @@ describe('Exact region images',()=>{
     const r=image('|z|<2','1/(1/z)');expect(has(r,1)).toBe(true);expect(has(r,0)).toBe(false);
     const shifted=image('|z|<2','1/(1/z)+1');expect(has(shifted,1)).toBe(false);expect(has(shifted,2)).toBe(true);
   });
-  it.each([['|z|<2','sin(z)'],['|z|<2','abs(z)'],['|z|<2','z-z'],['|z|<2','z/z']])('does not invent a fill for %s under %s',(s,f)=>{
+  it.each([['|z|<2','ln(z)'],['|z|<2','abs(z)'],['|z|<2','z-z'],['|z|<2','z/z']])('does not invent a fill for %s under %s',(s,f)=>{
     const result=mapRegion(region(s),parseMapping(f));expect(result.region).toBeNull();expect(result.notice).toMatch(/не закрашен/);
   });
 });

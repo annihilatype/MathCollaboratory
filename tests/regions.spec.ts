@@ -58,7 +58,7 @@ test('analytic images retain transparency, excluded poles and explicit unsupport
   await input(formula(page),'conj(z)');await expect(fill(page,'image')).toBeVisible();
   await input(formula(page),'sin(z)');await expect(fill(page,'image')).toHaveCount(0);await expect(page.locator('.region-notice[role="status"]')).toContainText('Образ области не закрашен');
   await input(field(page),'|z|<2');await input(formula(page),'z^2');await expect(fill(page,'image')).toBeVisible();await expect(page.locator('.region-notice[role="status"]')).toHaveCount(0);
-  await input(formula(page),'sin(z)');await expect(fill(page,'image')).toHaveCount(0);await expect(page.locator('.region-notice[role="status"]')).toBeVisible();
+  await input(formula(page),'sin(z)');await expect(fill(page,'image')).toBeVisible();await expect(page.locator('.region-notice[role="status"]')).toContainText('Приближённый');
   await input(field(page),'|z^2|<2');await expect(page.getByRole('alert')).toBeVisible();await expect(fill(page)).toHaveCount(0);
   await page.reload();await expect(page.getByRole('alert')).toBeVisible();
 });

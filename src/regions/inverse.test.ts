@@ -44,6 +44,6 @@ describe('All inverse branches and trustworthy interior cells',()=>{
   });
   it('preserves exact radial and Möbius paths, and refuses unsupported/unbounded domains',()=>{
     for(const [s,f] of [['|z|<2','z^2'],['|z|<=2','1/z'],['Im(z)>=0','conj(z)']])expect(mapRegion(source(s),parseMapping(f)).accuracy).toBe('exact');
-    for(const [s,f] of [['Re(z)<2','exp(z)'],['|z|<200','exp(z)'],['|z|<2','sin(z)']]){const m=mapRegion(source(s),parseMapping(f));expect(m.accuracy).toBe('unsupported');expect(m.approximation).toBeUndefined();}
+    for(const [s,f] of [['Re(z)<2','exp(z)'],['|z|<200','exp(z)'],['|z|<2','ln(z)']]){const m=mapRegion(source(s),parseMapping(f));expect(m.accuracy).toBe('unsupported');expect(m.approximation).toBeUndefined();}
   });
 });
