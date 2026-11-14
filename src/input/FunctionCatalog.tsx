@@ -5,7 +5,7 @@ const categories:OperationCategory[]=['Основная','Комплексная
 export function FunctionCatalog({complexMode,onClose}:{complexMode:boolean;onClose:()=>void}){
   const dialog=useRef<HTMLDialogElement>(null),[query,setQuery]=useState('');
   const context=activeContext()??(complexMode?'complex':'real'),isReal=context==='real';
-  useEffect(()=>{const d=dialog.current!,opener=document.activeElement as HTMLElement|null;d.showModal();d.querySelector<HTMLInputElement>('input')?.focus();return ()=>{d.close();opener?.focus({preventScroll:true});};},[]);
+  useEffect(()=>{const d=dialog.current!;d.showModal();d.querySelector<HTMLInputElement>('input')?.focus();return ()=>d.close();},[]);
   const hasEditor=[...document.querySelectorAll('math-field')].some(e=>!e.closest('[inert]'));
   const found=OPERATIONS.filter(o=>`${o.name} ${o.label} ${o.description} ${o.example} ${(o.aliases??[]).join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   function insert(latex:string){dialog.current!.close();insertOperation(latex);onClose();}
