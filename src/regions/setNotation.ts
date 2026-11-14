@@ -2,7 +2,7 @@
 // This runs only at the geometry entry point, before TeX groups become parentheses.
 export function setConditions(latex:string):string|null {
   if(latex.length>500)throw new Error('Выражение слишком длинное (максимум 500 символов).');
-  const s=latex.trim().replace(/\\(?:left|right)\s*/g,'').replace(/\\lbrace\b/g,'\\{').replace(/\\rbrace\b/g,'\\}');
+  const s=latex.trim().replace(/\\(?:left|right)\s*/g,'').replace(/\\lbrace\b/g,'\\{').replace(/\\rbrace\b/g,'\\}').replace(/\\lbrack(?![a-zA-Z])/g,'[').replace(/\\rbrack(?![a-zA-Z])/g,']');
   const escaped=s.startsWith('\\{'),start=escaped?2:s.startsWith('{')?1:0;
   if(!start)return null;
   const header=/^\s*z\s*(?::|\\colon\b)\s*/.exec(s.slice(start));
@@ -32,6 +32,6 @@ export function setConditions(latex:string):string|null {
   }
   parts.push(body.slice(last));
   if(parts.some(p=>!p.trim()))throw new Error('После двоеточия и запятой нужны условия области.');
-  if(parts.length>2)throw new Error('Поддерживается пересечение двух условий через запятую или and.');
+  if(parts.length>24)throw new Error('Поддерживается не более 24 условий через запятую или and.');
   return parts.map(p=>'('+p+')').join(' and ');
 }

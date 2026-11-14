@@ -1,6 +1,7 @@
+import { validComplexParameter } from '../complex/parameters';
 import { REAL_VIEW, COMPLEX_VIEW, validViewport, type Viewport } from './view';
 export interface Expression { id: string; latex: string; color: string; visible: boolean }
-export interface Parameter { value: number; min: number; max: number; step: number }
+export interface Parameter { value: number; min: number; max: number; step: number; positive?:boolean; integer?:boolean }
 export interface MappingState { enabled:boolean; latex:string; viewport:Viewport }
 export const initialMapping=():MappingState=>({enabled:false,latex:"z^2",viewport:[...COMPLEX_VIEW]});
 export interface AppState { version: 1; expressions: Expression[]; parameters: Record<string, Parameter>; theme: 'light' | 'dark'; mode: 'real' | 'complex'; mapping:MappingState; realViewport: Viewport; complex: { expressions: Expression[]; viewport: Viewport } }
@@ -15,6 +16,9 @@ export function validParameter(p: Parameter): boolean { return [p.value,p.min,p.
 // Snap only to values the native range input can represent (relative to min).
 export function normalizeParameter(p: Parameter): Parameter | null {
   if (!validParameter(p)) return null;
+  if(p.positive!==undefined&&typeof p.positive!=='boolean'||p.integer!==undefined&&typeof p.integer!=='boolean')return null;
+  if(p.positive&&(p.min<=0||p.value<=0))return null;
+  if(p.integer&&![p.value,p.min,p.max,p.step].every(Number.isInteger))return null;
   const span = p.max - p.min;
   if (!Number.isFinite(span) || p.min + p.step <= p.min || p.max - p.step >= p.max) return null;
   const count = span / p.step;
@@ -46,7 +50,7 @@ export function decodeState(raw: string | null): AppState {
     const parameters: Record<string, Parameter> = {};
     if (s.parameters && typeof s.parameters === 'object') {
       for (const [name, p] of Object.entries(s.parameters)) {
-        if (!/^[a-wyzA-Z](?:_[a-zA-Z0-9]+)?$/.test(name) || name === 'e' || !p) continue;
+        if ((!/^[a-wyzA-Z](?:_[a-zA-Z0-9]+)?$/.test(name)&&!validComplexParameter(name)) || ['e','pi','constructor','prototype'].includes(name) || !p) continue;
         const normalized = normalizeParameter(p);
         if (normalized) parameters[name] = normalized;
       }

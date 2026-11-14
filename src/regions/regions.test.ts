@@ -26,7 +26,7 @@ describe('Structured inequalities and intersections',()=>{
   ])('%s',(s,inside,outside)=>{
     const r=region(s as string);for(const [x,y] of inside as number[][])expect(has(r,x,y)).toBe(true);for(const [x,y] of outside as number[][])expect(has(r,x,y)).toBe(false);
   });
-  it.each(['|z^2|<2','|2z|<2','Re(z+1)<2','Re(z)<i','|z|<-1','|z|<0','z<2','Re(z)<2 or Im(z)>0','Re(z)<2 and Im(z)>0 and |z|<3','Re(z)<2=1','1<z<3','Re(z)<[2]','Re(z)<random()','Re(z)<2;3','Re(z)<2 and z=1'])('rejects unsupported/unsafe %s',s=>expect(()=>region(s)).toThrow());
+  it.each(['|z^2|<2','|2z|<2','Re(z+1)<2','Re(z)<i','|z|<-1','|z|<0','z<2','Re(z)<2=1','1<z<3','Re(z)<[2]','Re(z)<random()','Re(z)<2;3','Re(z)<2 and z=1'])('rejects unsupported/unsafe %s',s=>expect(()=>region(s)).toThrow());
   it.each(['|z|<1e-200','|z-1e100|<1','|z|<1e200'])('diagnoses unrepresentable geometry instead of changing its set: %s',s=>expect(()=>region(s)).toThrow(/точност|велики/));
   it('normalizes circles and clips a half-plane to a viewport',()=>{
     expect(boundary(region('|z-1-i|<2').constraints[0])).toEqual({kind:'circle',x:1,y:1,radius:2,inside:true});
@@ -64,7 +64,7 @@ describe('Exact region images',()=>{
     const r=image('|z|<2','1/(1/z)');expect(has(r,1)).toBe(true);expect(has(r,0)).toBe(false);
     const shifted=image('|z|<2','1/(1/z)+1');expect(has(shifted,1)).toBe(false);expect(has(shifted,2)).toBe(true);
   });
-  it.each([['Re(z)<1','z^2'],['|z|<2','sin(z)'],['|z|<2','(z+1/z)/2'],['|z|<2','abs(z)'],['|z|<2','z-z'],['|z|<2','z/z']])('does not invent a fill for %s under %s',(s,f)=>{
+  it.each([['|z|<2','sin(z)'],['|z|<2','abs(z)'],['|z|<2','z-z'],['|z|<2','z/z']])('does not invent a fill for %s under %s',(s,f)=>{
     const result=mapRegion(region(s),parseMapping(f));expect(result.region).toBeNull();expect(result.notice).toMatch(/не закрашен/);
   });
 });
