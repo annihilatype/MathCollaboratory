@@ -8,7 +8,7 @@ function configureKeyboard(complexMode: boolean) { window.mathVirtualKeyboard.la
   ['\\sin', '\\cos', '\\tan', '4', '5', '6', '\\times', '\\frac{#0}{#0}'],
   ['\\ln', '\\log', '\\exp', '1', '2', '3', '(', ')'],
   ['\\pi', 'e', '\\sqrt{#0}', '0', '.', '#@^{#0}', '|#0|', '[backspace]'],
-  ...(complexMode ? [['z', 'i', '\\operatorname{conj}(#0)', '\\operatorname{abs}(#0)', '\\operatorname{arg}(#0)', '\\operatorname{Re}(#0)', '\\operatorname{Im}(#0)'], ['<', '>', '\\le', '\\ge', '\\land', '=', '|#0|']] : []),
+  ...(complexMode ? [['z', 'i', '\\operatorname{conj}(#0)', '\\operatorname{abs}(#0)', '\\operatorname{arg}(#0)', '\\operatorname{Re}(#0)', '\\operatorname{Im}(#0)'], ['<', '>', '\\le', '\\ge', '\\land', '=', '|#0|'], ['\\notin','\\lor','\\land','\\rho','\\pi','[',']']] : []),
   ['[left]', '[right]', { label: 'Готово', command: 'hideVirtualKeyboard' }],
 ] }]; }
 export function MathEditor({ value, onChange, label, complexMode = false }: { value: string; onChange: (value: string) => void; label: string; complexMode?: boolean }) {
@@ -26,8 +26,9 @@ export function MathEditor({ value, onChange, label, complexMode = false }: { va
     mf.setAttribute('aria-label', label);
     mf.value = value;
     mf.addEventListener('keydown', event=>{
-      if(!complexRef.current||event.key!=='|'||event.ctrlKey||event.metaKey)return;
-      if(!/^(?:\\left\s*)?(?:\\lbrace|\\\{|\{)\s*z\s*:/.test(mf.value))return;
+      if(!complexRef.current||event.ctrlKey||event.metaKey||mf.mode!=='math')return;
+      if(event.key===' '&&/^(?:\\left\s*)?(?:\\lbrace|\\\{|\{)\s*z\s*:/.test(mf.value)){event.preventDefault();event.stopImmediatePropagation();mf.executeCommand(['insert','\\,']);return;}
+      if(event.key!=='|')return;
       if(mf.selection.ranges.some(([a,b])=>a!==b))return;
       // MathLive 0.111.4 loses nested smart | fences inside lbrace/rbrace.
       // Use the same literal atoms as its working virtual modulus key.
@@ -46,6 +47,7 @@ export function MathEditor({ value, onChange, label, complexMode = false }: { va
       callback.current(mf.value);
     });
     host.current!.append(mf); field.current = mf;
+    mf.inlineShortcuts={...mf.inlineShortcuts,notin:'\\notin'};
     return () => { mf.remove(); field.current = null; };
   }, []);
   useEffect(() => { if (field.current && field.current.value !== value) field.current.setValue(value, { silenceNotifications: true }); }, [value]);

@@ -59,3 +59,5 @@
 .region-notice{display:block;margin-top:5px;color:var(--text);background:var(--panel);padding:6px 8px;border:1px solid var(--line);border-radius:6px;max-width:360px}
 
 .sampling-details{display:block;margin-top:5px;font-size:9px;color:var(--muted)}
+
+.parameter-value{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--text);padding:6px;font-size:12px}.parameter-constraint{display:flex;gap:6px;align-items:center}.parameter-constraint input{width:auto;margin:0}

@@ -6,7 +6,7 @@ const image=(p:Page)=>p.locator('.image-slot .graph');
 const numeric=(p:Page)=>p.locator('.image-slot [data-object-id="complex-point"][data-geometry="region-image"]');
 async function input(f:Locator,value:string){await f.evaluate((e,s)=>{const m=e as HTMLElement&{value:string};m.value=s;m.dispatchEvent(new InputEvent('input',{bubbles:true}));},value);}
 async function type(f:Locator,p:Page,s:string){await f.evaluate(e=>{const m=e as HTMLElement&{executeCommand:(s:string)=>void};m.focus();m.executeCommand('selectAll');});await p.keyboard.press('Backspace');await p.keyboard.type(s,{delay:10});}
-async function ready(p:Page){await expect(numeric(p)).toHaveAttribute('data-evaluations',/\d+/);await expect(numeric(p)).toHaveAttribute('d',/M/);}
+async function ready(p:Page){await expect(numeric(p)).toHaveAttribute('data-evaluations',/\d+/);await expect(numeric(p)).toHaveAttribute('d',/M/);await expect(numeric(p)).toHaveAttribute('data-quality','settled');}
 async function inFill(p:Page,re:number,im:number){return numeric(p).evaluate((path,z)=>{
   const g=path.closest('.graph') as HTMLElement,v=JSON.parse(g.dataset.viewport!),x=(z[0]-v[0])*Number(g.dataset.unitX),y=(v[1]-z[1])*Number(g.dataset.unitY);
   return (path as SVGGeometryElement).isPointInFill(new DOMPoint(x,y));
@@ -57,7 +57,7 @@ test('shifted disks use numerical powers, retain exact paths, and render screens
   for(const f of ['z^2','z^3']){await input(formula(page),f);await ready(page);await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','approximate');}
   await input(field(page),'|z|<2');await input(formula(page),'z^2');await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','exact');await expect(numeric(page)).toHaveCount(0);
   await input(formula(page),'sin(z)');await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','unsupported');await expect(page.locator('.region-notice')).toContainText('не закрашен');
-  await input(field(page),'Re(z)<2');await input(formula(page),'exp(z)');await expect(page.locator('.region-notice')).toContainText('ограниченная область');
+  await input(field(page),'Re(z)<2');await input(formula(page),'exp(z)');await expect(page.locator('.region-notice')).toContainText('32 ветвей');
   await input(field(page),'\\left\\lbrace z:1<|z|<2\\right\\rbrace');
   await page.setViewportSize({width:1440,height:960});
   await page.locator('.complex-workspace').evaluate(e=>Promise.all(e.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));

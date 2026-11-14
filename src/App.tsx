@@ -1,9 +1,9 @@
-import { parseMapping } from './mapping/expression';
+import { useComplexAnalysis } from './complex/useComplexAnalysis';
+import { suggestedParameter } from './complex/analyze';
 import { MappingControls } from './mapping/MappingControls';
 import { ComplexWorkspace } from './mapping/ComplexWorkspace';
 import { PointDetails } from './mapping/PointDetails';
 import { pointFormula } from './mapping/parameterize';
-import { parseComplexGeometry } from './complex/geometry';
 import type { ComplexPlot } from './complex/render';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ResetDialog } from './components/ResetDialog';
@@ -20,27 +20,25 @@ export function App() {
   const [confirmReset, setConfirmReset] = useState(false);
   useEffect(() => { document.documentElement.dataset.theme=state.theme; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); setSaveError(false); } catch { setSaveError(true); } }, [state]);
   const isComplex = state.mode === 'complex';
-  const mapped = useMemo(()=>{try{return {value:parseMapping(state.mapping.latex),error:''};}catch(e){return {value:null,error:(e as Error).message};}},[state.mapping.latex]);
+  const values = useMemo(() => Object.fromEntries(Object.entries(state.parameters).map(([k,p]) => [k,p.value])), [state.parameters]);
+  const {analyzed:complexAnalyzed,mapped}=useComplexAnalysis(state.complex.expressions,state.mapping.latex,values);
   const movePoint = useCallback((id:string,z:{re:number;im:number})=>setState(s=>({...s,complex:{...s.complex,expressions:s.complex.expressions.map(e=>e.id===id?{...e,latex:pointFormula(z)}:e)}})),[]);
   const expressions = isComplex ? state.complex.expressions : state.expressions;
-  const complexAnalyzed = useMemo(() => state.complex.expressions.map(e => {
-    try { return { ...e, geometry: parseComplexGeometry(e.latex), error: '' }; }
-    catch (error) { return { ...e, geometry: null, error: e.latex.trim() ? (error as Error).message : '' }; }
-  }), [state.complex.expressions]);
   const objects = useMemo<ComplexPlot[]>(() => complexAnalyzed.flatMap(e => e.visible && e.geometry ? [{id:e.id, color:e.color, geometry:e.geometry}] : []), [complexAnalyzed]);
   const analyzed = useMemo(() => state.expressions.map(expression => {
     try { return { ...expression, parsed: parseExpression(expression.latex), error: '' }; }
     catch (error) { return { ...expression, parsed: null, error: expression.latex.trim() ? (error as Error).message : '' }; }
   }), [state.expressions]);
   const names = useMemo(() => [...new Set(analyzed.flatMap(e => e.parsed?.parameters ?? []))].sort(), [analyzed]);
-  const values = useMemo(() => Object.fromEntries(Object.entries(state.parameters).map(([k,p]) => [k,p.value])), [state.parameters]);
+  const complexNames=useMemo(()=>[...new Set([...complexAnalyzed.flatMap(e=>e.parameters),...(state.mapping.enabled?mapped.parameters:[])])].sort(),[complexAnalyzed,mapped.parameters,state.mapping.enabled]);
+  const shownNames=isComplex?complexNames:names;
   const plots = useMemo(() => analyzed.flatMap(e => e.visible && e.parsed && e.parsed.parameters.every(p => Object.hasOwn(values,p)) ? [{ id:e.id, color:e.color, parsed:e.parsed }] : []), [analyzed, values]);
   const updateExpressions = (update: (items: Expression[]) => Expression[]) => setState(s => s.mode === 'complex' ? {...s, complex:{...s.complex, expressions:update(s.complex.expressions)}} : {...s, expressions:update(s.expressions)});
   const patch = (id: string, update: Partial<Expression>) => updateExpressions(items => items.map(e => e.id === id ? {...e,...update} : e));
   const add = (latex='') => updateExpressions(items => [...items, {id:crypto.randomUUID(), latex, color:COLORS[items.length%COLORS.length], visible:true}]);
   const rows = isComplex ? complexAnalyzed.map(e => ({...e, parsed:null})) : analyzed.map(e => ({...e, geometry:null}));
   return <div className="app-shell">
-    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.4.1</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
+    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.5</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
     <main><aside className="sidebar"><div className="module-heading"><span className="eyebrow">МАТЕМАТИЧЕСКИЕ ИНСТРУМЕНТЫ</span><h1>{isComplex ? 'Комплексная плоскость' : 'Графики функций'}<span>↗</span></h1></div>
       <button type="button" className="mode-switch" role="switch" aria-checked={isComplex} onClick={()=>setState(s=>({...s,mode:s.mode === 'complex' ? 'real' : 'complex'}))}><span>Комплексная плоскость</span><span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span></button>
       {isComplex&&<MappingControls onToggle={()=>setState(s=>({...s,mapping:{...s.mapping,enabled:!s.mapping.enabled}}))} state={state.mapping} error={mapped.error} onChange={update=>setState(s=>({...s,mapping:{...s.mapping,...update}}))}/>}
@@ -54,9 +52,10 @@ export function App() {
       </article>)}</div>
       <button className="add-expression" onClick={()=>add()} disabled={expressions.length>=50}><span>＋</span> Добавить выражение</button>
       {isComplex&&<button className="text-button add-segment" disabled={expressions.length>=50} onClick={()=>add('\\operatorname{segment}(-1,1)')}>Добавить отрезок</button>}
-      {!isComplex && names.some(n=>Object.hasOwn(state.parameters,n)) && <div className="parameters"><div className="section-heading"><h2>Параметры</h2><span>↔</span></div>{names.filter(n=>Object.hasOwn(state.parameters,n)).map(name=><ParameterControl key={name} name={name} parameter={state.parameters[name]} onChange={p=>setState(s=>({...s,parameters:{...s.parameters,[name]:p}}))} />)}</div>}
+      {isComplex&&complexNames.filter(n=>!Object.hasOwn(state.parameters,n)).map(name=><button className="create-parameter" key={name} onClick={()=>setState(s=>({...s,parameters:{...s.parameters,[name]:suggestedParameter(name)}}))}>+ Создать ползунок {name}</button>)}
+      {shownNames.some(n=>Object.hasOwn(state.parameters,n)) && <div className="parameters"><div className="section-heading"><h2>Параметры</h2><span>↔</span></div>{shownNames.filter(n=>Object.hasOwn(state.parameters,n)).map(name=><ParameterControl key={name} name={name} parameter={state.parameters[name]} onChange={p=>setState(s=>({...s,parameters:{...s.parameters,[name]:p}}))} />)}</div>}
       <div className="sidebar-footer"><div className="hint"><span>⌨</span><p>Введите функцию с клавиатуры или откройте математическую клавиатуру в поле ввода.<small>{isComplex ? <>z=2+3i · |z|&lt;2 · 1&lt;|z|&lt;3<br/>Пересечение: Re(z)&lt;2 and Im(z)&gt;=0<br/>conj, abs, arg · аргумент в радианах</> : <>sin, cos, tan, ln, log, exp, abs, π, e<br/>log — по основанию 10, ln — натуральный</>}</small></p></div><div className="save-row"><span className={saveError?'error':''}>{saveError?'Не удалось сохранить': '✓ Сохранено на устройстве'}</span><button onClick={()=>setConfirmReset(true)}>Сбросить</button></div></div>
     </aside>{isComplex?<ComplexWorkspace key={`complex-${resetKey}`} objects={objects} mapping={mapped.value} state={state.mapping} viewport={state.complex.viewport} theme={state.theme} onSourceView={view=>setState(s=>({...s,complex:{...s.complex,viewport:view}}))} onImageView={view=>setState(s=>({...s,mapping:{...s.mapping,viewport:view}}))} onPointMove={movePoint}/>:<Graph key={`real-${resetKey}`} plots={plots} parameters={values} theme={state.theme} viewport={state.realViewport} onViewportChange={view=>setState(s=>({...s,realViewport:view}))}/>}</main>
-    {confirmReset && <ResetDialog onCancel={()=>setConfirmReset(false)} onConfirm={()=>{setState(s=>s.mode === 'complex' ? {...s,complex:initialComplex(),mapping:initialMapping()} : {...s,expressions:initialState().expressions,parameters:initialState().parameters,realViewport:initialState().realViewport});setResetKey(k=>k+1);setConfirmReset(false);}}/>}
+    {confirmReset && <ResetDialog onCancel={()=>setConfirmReset(false)} onConfirm={()=>{setState(s=>s.mode === 'complex' ? {...s,complex:initialComplex(),mapping:initialMapping()} : {...s,expressions:initialState().expressions,parameters:{...initialState().parameters,...s.parameters},realViewport:initialState().realViewport});setResetKey(k=>k+1);setConfirmReset(false);}}/>}
   </div>;
 }

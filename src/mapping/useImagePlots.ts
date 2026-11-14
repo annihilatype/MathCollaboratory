@@ -1,3 +1,4 @@
+import { partsOf } from '../regions/model';
 import { tileRegionImage, type RegionTiling } from '../regions/inverse';
 import { mapRegion } from '../regions/transform';
 import { useMemo, useRef } from 'react';
@@ -19,18 +20,19 @@ export function useImagePlots(objects:ComplexPlot[],mapping:ComplexMapping|null)
       if(g.kind==='point'){
         const w=mapping.evaluate(g.value);
         if(w&&Math.max(Math.abs(w.re),Math.abs(w.im))<=1e9)result.push({...p,geometry:{kind:'point',value:w,modulus:Math.hypot(w.re,w.im),argument:w.re===0&&w.im===0?null:Math.atan2(w.im,w.re)}});
-      }else if(g.kind==='region'){
+      }else if(g.kind==='region'&&!parameterize(g)){
         const image=mapRegion(g,mapping),plan=image.approximation;
         const key='region:'+JSON.stringify(g)+p.color+regionCount,old=cache.current.get(p.id);
         if(old?.key===key&&old.mapping===mapping){result.push(old.plot);continue;}
         let plot:DrawablePlot|undefined;
         if(image.region)plot={...p,geometry:image.region};
         else if(plan){
-          const cellBudget=Math.max(8,Math.min(6144,Math.floor(24000/(regionCount*plan.branches))));
+          const domainCost=Math.max(1,Math.ceil(partsOf(g).reduce((n,r)=>n+r.constraints.length+r.excluded.length+(r.excludedSegments?.length??0),0)/8));
+          const cellBudget=Math.max(8,Math.min(6144,Math.floor(24000/(regionCount*plan.branches*domainCost))));
           let previousKey='',previous:RegionTiling;
-          plot={...p,geometry:{kind:'region-image',plan,sample:(view,unit)=>{
-            const k=JSON.stringify(view)+unit;if(k===previousKey)return previous;
-            previous=tileRegionImage(plan,view,unit,cellBudget);previousKey=k;return previous;
+          plot={...p,geometry:{kind:'region-image',plan,sample:(view,unit,quality='settled')=>{
+            const k=JSON.stringify(view)+unit+quality;if(k===previousKey)return previous;
+            previous=tileRegionImage(plan,view,unit,quality==='interactive'?Math.min(512,cellBudget):cellBudget,quality==='interactive'?6:2);previousKey=k;return previous;
           }}};
         }
         if(plot){cache.current.set(p.id,{key,mapping,plot});result.push(plot);}else cache.current.delete(p.id);
