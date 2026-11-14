@@ -1,4 +1,5 @@
 import JXG from 'jsxgraph';
+import { createRegionLayer } from '../regions/render';
 import type { ComplexGeometry, ComplexCoordinate } from './geometry';
 import type { ImagePath } from '../mapping/sample';
 import type { Viewport } from '../state/view';
@@ -7,14 +8,17 @@ export interface ImageCurve { kind:'image'; sample:(view:Viewport,unit:number)=>
 export interface DrawablePlot { id:string; color:string; geometry:ComplexGeometry|ImageCurve }
 export type PointMove = (id:string,z:ComplexCoordinate)=>void;
 export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined){
+  const regions=createRegionLayer(board);
   const entries=new Map<string,{kind:string;signature:string;object:JXG.GeometryElement;aux:JXG.GeometryElement[]}>();
   const remove=(id:string)=>{const e=entries.get(id)!;board.removeObject(e.object);e.aux.forEach(p=>board.removeObject(p));entries.delete(id);};
   return {
     update(plots:DrawablePlot[]){
+      regions.update(plots);
+      plots=plots.filter(p=>p.geometry.kind!=='region');
       const ids=new Set(plots.map(p=>p.id));for(const id of entries.keys())if(!ids.has(id))remove(id);
       board.suspendUpdate();
       for(const {id,color,geometry:g} of plots){
-        const signature=JSON.stringify(g)+color,old=entries.get(id),style={strokeColor:color,fillColor:color,highlight:false,fixed:true,lineCap:'round' as const};
+        const signature=JSON.stringify(g)+color,old=entries.get(id),style={strokeColor:color,fillColor:color,fillOpacity:g.kind==='point'?1:0,highlight:false,fixed:true,lineCap:'round' as const};
         if(old?.kind===g.kind && g.kind==='point'){
           const p=old.object as JXG.Point;
           if(p.X()!==g.value.re||p.Y()!==g.value.im)p.setPosition(JXG.COORDS_BY_USER,[g.value.re,g.value.im]);
@@ -28,6 +32,7 @@ export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined
         if(old && old.signature===signature)continue;
         if(old)remove(id);
         let object:JXG.GeometryElement;const aux:JXG.GeometryElement[]=[];
+        if(g.kind==='region')continue;
         if(g.kind==='point'){
           const point=board.create('point',[g.value.re,g.value.im],{...style,fixed:!onMove(),name:'',size:4,withLabel:false});
           point.on('drag',()=>onMove()?.(id,{re:point.X(),im:point.Y()}));object=point;
@@ -45,6 +50,6 @@ export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined
       }
       board.unsuspendUpdate();
     },
-    clear(){for(const id of [...entries.keys()])remove(id);},
+    clear(){regions.clear();for(const id of [...entries.keys()])remove(id);},
   };
 }

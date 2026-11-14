@@ -6,6 +6,7 @@ export function complexSource(latex: string): string {
   let s = latex.replace(/\\(?:left|right)/g, '').replace(/\\[,;! ]/g, '')
     .replace(/\\(?:operatorname|mathrm)\{(conj|abs|arg|Re|Im|re|im|i|exp|sin|cos|segment)\}/g, '$1')
     .replace(/\\imaginaryI/g, 'i').replace(/\\(exp|sin|cos)(?![a-zA-Z])/g, '$1').replace(/\\(?:Re|real)/g, 'Re').replace(/\\(?:Im|imag)/g, 'Im')
+    .replace(/\\(?:leq|le)(?![a-zA-Z])/g, '<=').replace(/\\(?:geq|ge)(?![a-zA-Z])/g, '>=').replace(/\\(?:lt|gt)(?![a-zA-Z])/g, m=>m==='\\lt'?'<':'>').replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/\\(?:land|wedge)(?![a-zA-Z])/g, ' and ')
     .replace(/\\(?:cdot|times)/g, '*').replace(/−/g, '-').replace(/\\imaginaryI/g, 'i');
   // Balanced groups support nested fractions and conjugates.
   let i = 0;
@@ -14,12 +15,21 @@ export function complexSource(latex: string): string {
     if (s[i++] !== '{') throw new Error('Ожидаются фигурные скобки.');
     return '(' + read(true) + ')';
   }
+  function fractionArgument(): string {
+    while (/\s/.test(s[i] ?? '') && i < s.length) i++;
+    if(s[i]==='{') { const value=group(); if(value==='()')throw new Error('У дроби пустой числитель или знаменатель.'); return value; }
+    // TeX accepts a single unbraced token (\\frac12, \\frac1z).
+    if(/[a-zA-Z0-9]/.test(s[i] ?? '') && i<s.length)return '('+s[i++]+')';
+    const command=/^\\(frac|dfrac|tfrac)(?![a-zA-Z])/.exec(s.slice(i));
+    if(command){i+=command[0].length;return '('+fractionArgument()+'/'+fractionArgument()+')';}
+    throw new Error('У дроби нужны числитель и знаменатель: \\frac{1}{z}.');
+  }
   function read(nested = false): string {
     let out = '';
     while (i < s.length) {
       if (s[i] === '}') { i++; if (!nested) throw new Error('Лишняя скобка.'); return out; }
       if (s[i] === '{') { i++; out += '(' + read(true) + ')'; }
-      else if (s.startsWith('\\frac', i)) { i += 5; out += '(' + group() + '/' + group() + ')'; }
+      else if (/^\\(?:frac|dfrac|tfrac)(?![a-zA-Z])/.test(s.slice(i))) { i += /^\\[a-z]+/.exec(s.slice(i))![0].length; out += '(' + fractionArgument() + '/' + fractionArgument() + ')'; }
       else if (s.startsWith('\\overline', i)) { i += 9; out += 'conj' + group(); }
       else out += s[i++];
     }
