@@ -1,4 +1,5 @@
-export type Viewport = [number, number, number, number];
+import type {Viewport} from '../core/types';
+export type {Viewport} from '../core/types';
 export const REAL_VIEW: Viewport = [-8,5,8,-5];
 export const COMPLEX_VIEW: Viewport = [-5,5,5,-5];
 export function validViewport(v: unknown): v is Viewport {

@@ -12,7 +12,7 @@ try{
  const current=await server.ssrLoadModule('/src/regions/inverse.ts');
  const versions=[['current',current]];
  if(process.argv[2]){
-  const text=execFileSync('git',['show',`${process.argv[2]}:src/regions/inverse.ts`],{encoding:'utf8'}).replaceAll("'./model'","'../src/regions/model'");
+  const text=execFileSync('git',['show',`${process.argv[2]}:src/regions/inverse.ts`],{encoding:'utf8'}).replaceAll("'./model'","'../src/regions/model'").replaceAll("'../math/diagnostics'","'../src/math/diagnostics'");
   await writeFile(join(temp,'baseline.ts'),text);versions.unshift(['baseline',await server.ssrLoadModule(join(temp,'baseline.ts'))]);
  }
  const scenes=[['half-strip','{z:0<Im(z)<pi/2,Re(z)>0}','exp(2*z)'],['annulus','1<|z|<2','exp(z)'],['sector','{z:|arg(z)|<pi/8,z notin [0,1]}','z^8']];
