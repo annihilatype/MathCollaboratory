@@ -15,7 +15,7 @@ export function RegionImageNotice({results,hasLines}:{results:({id:string}&Regio
   const current=results.filter(r=>r.approximation).flatMap(r=>stats[r.id]?[stats[r.id]]:[]),uncertainty=Math.max(0,...current.map(s=>s.maxUncertaintyPx));
   return <div className="image-note" ref={host}>
     Неразрешённые участки кривых показаны разрывами. {hasLines?'Образы прямых — адаптивные параметрические кривые; неразрешённые участки пропускаются.':''}{hasHoles?' Исключённые конечные точки отмечены полыми кружками.':''}
-    {notices.map(n=><span className="region-notice" key={n} role="status">{n}</span>)}
-    {current.length>0&&<span className="sampling-details" role="status">Максимальный размер непроверенной ячейки: {uncertainty.toFixed(1)} px.{current.some(s=>s.truncated)?' Достигнут лимит детализации.':''}</span>}
+    {notices.map(n=><span className="region-notice" data-diagnostic={results.find(r=>r.notice===n)?.diagnostic?.kind} key={n} role="status">{n}</span>)}
+    {current.length>0&&<span className="sampling-details" role="status">Максимальный размер непроверенной ячейки: {uncertainty.toFixed(1)} px.{current.some(s=>s.truncated)?' Достигнут вычислительный бюджет; непроверенная часть остаётся заштрихованной.':''}</span>}
   </div>;
 }

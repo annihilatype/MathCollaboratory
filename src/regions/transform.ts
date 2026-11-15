@@ -1,7 +1,9 @@
+import { inversePipeline } from './pipeline';
+import { diagnosis,type Diagnostic } from '../math/diagnostics';
 import { complex, add, subtract, multiply, divide, conj, type Complex, type MathNode } from 'mathjs';
 import { isJoukowski } from '../complex/laurent';
-import { inversePlan, type InversePlan } from './inverse';
-import { evaluateComplexNode } from '../complex/math';
+import { explainInversePlan, type InversePlan } from './inverse';
+import { evaluateComplexNode,isEuler } from '../complex/math';
 import type { ComplexCoordinate, ComplexMapping } from '../complex/geometry';
 import { boundary, constraint, contains, partsOf,unionRegions, type Region, type RegionTransform } from './model';
 const z=(re=0,im=0)=>complex(re,im),as=(v:ComplexCoordinate)=>z(v.re,v.im);
@@ -23,7 +25,7 @@ function normalized(m:Mobius):Mobius|null {
   return {...m,a,b,c,d};
 }
 // Structural recognition only: never infer an exact transformation by sampling.
-export function regionTransform(root:MathNode,parameters:Readonly<Record<string,number>>={}):RegionTransform|undefined {
+export function recognizeTransform(root:MathNode,parameters:Readonly<Record<string,number>>={}):RegionTransform|undefined {
   function visit(root:MathNode):Mobius|null {
     const n=unwrap(root);
     if(n.type==='SymbolNode'&&n.name==='z')return {kind:'mobius',a:z(1),b:z(),c:z(),d:z(1),conjugate:false,excluded:[]};
@@ -59,8 +61,8 @@ export function regionTransform(root:MathNode,parameters:Readonly<Record<string,
   }
   const n=unwrap(root);
   if(isJoukowski(root,parameters))return {kind:'joukowski'};
-  if(n.type==='FunctionNode'&&n.fn.type==='SymbolNode'&&n.name==='exp'&&n.args.length===1){
-    const affine=visit(n.args[0]);
+  if((n.type==='FunctionNode'&&n.fn.type==='SymbolNode'&&n.name==='exp'&&n.args.length===1)||(n.type==='OperatorNode'&&n.op==='^'&&n.args.length===2&&isEuler(n.args[0]))){
+    const affine=visit(n.args[n.type==='OperatorNode'?1:0]);
     if(affine&&zero(affine.c)&&!affine.conjugate&&affine.excluded.length===0){const scale=over(affine.a,affine.d),offset=over(affine.b,affine.d);return zero(minus(scale,z(1)))&&zero(offset)?{kind:'exponential'}:{kind:'exponential',scale,offset};}
   }
   if(n.type==='OperatorNode'&&n.op==='^'&&n.args.length===2&&unwrap(n.args[0]).type==='SymbolNode'&&unwrap(n.args[0]).name==='z'){
@@ -68,20 +70,28 @@ export function regionTransform(root:MathNode,parameters:Readonly<Record<string,
   }
   return visit(n)??undefined;
 }
-export interface RegionImage { region:Region|null; notice:string; accuracy:'exact'|'approximate'|'unsupported'; approximation?:InversePlan }
+export function regionTransform(root:MathNode,parameters:Readonly<Record<string,number>>={}):RegionTransform|undefined {
+  try{return inversePipeline(root,parameters,n=>recognizeTransform(n,parameters));}catch{return undefined;}
+}
+export function describeRegionTransform(root:MathNode,parameters:Readonly<Record<string,number>>={}):{transform?:RegionTransform;diagnostic?:Diagnostic}{
+  try{return {transform:inversePipeline(root,parameters,n=>recognizeTransform(n,parameters))};}
+  catch(e){const error=e as Error&{kind?:Diagnostic['kind'];code?:string};return {diagnostic:diagnosis(error.kind??'operation',error.code??'inverse-plan',error.message)};}
+}
+export interface RegionImage { region:Region|null; notice:string; accuracy:'exact'|'approximate'|'unsupported'; approximation?:InversePlan; diagnostic?:Diagnostic }
 export function mapRegion(region:Region,mapping:ComplexMapping):RegionImage {
   const m=mapping.regionTransform;
-  const unsupported:RegionImage={region:null,accuracy:'unsupported',notice:'Образ области не закрашен: точное преобразование для этой формулы и области пока не поддерживается.'};
+  const problem=mapping.regionDiagnostic??diagnosis('operation','inverse-operation','Для этой операции пока нет полного обратного плана заливки.');
+  const unsupported:RegionImage={region:null,accuracy:'unsupported',notice:`Образ области не закрашен: ${problem.message}`,diagnostic:problem};
   if(!m)return unsupported;
   function approximate():RegionImage {
     if(!m)return unsupported;
-    const approximation=inversePlan(region,m);
-    if(!approximation)return {...unsupported,notice:'Образ области не закрашен: для exp нужна конечная ширина по Im(a·z+b), до 32 ветвей; для остальных семейств — до 32 прообразов. Проверьте диапазоны параметров.'};
-    return {region:null,approximation,accuracy:'approximate',notice:'Приближённый образ: закрашены подтверждённые участки. Границы и непроверенные участки пропущены.'};
+    const result=explainInversePlan(region,m),approximation=result.plan;
+    if(!approximation)return {...unsupported,diagnostic:result.diagnostic,notice:`Образ области не закрашен: ${result.diagnostic?.message}`};
+    return {region:null,approximation,accuracy:'approximate',notice:'Приближённый образ: закрашены подтверждённые участки; штриховка обозначает численную неопределённость у границ или особенностей.',diagnostic:diagnosis('uncertain','interval-enclosure','Проверка принадлежности через все допустимые обратные ветви; пограничные ячейки требуют уточнения.')};
   }
   try{
     const boundaryParts=partsOf(region).filter(p=>p.equality);
-    if(boundaryParts.length&&(!partsOf(region).every(p=>p.equality)||!boundaryParts.every(p=>JSON.stringify(p.equality)===JSON.stringify(boundaryParts[0].equality))))return {...unsupported,notice:'Образы объединения разных одномерных границ или границы с областью пока не строятся совместно. Разбейте их на отдельные выражения.'};
+    if(boundaryParts.length&&(!partsOf(region).every(p=>p.equality)||!boundaryParts.every(p=>JSON.stringify(p.equality)===JSON.stringify(boundaryParts[0].equality))))return {...unsupported,diagnostic:diagnosis('domain','mixed-dimensions','Объединение разных одномерных границ или границы с областью.'),notice:'Образы объединения разных одномерных границ или границы с областью пока не строятся совместно. Разбейте их на отдельные выражения.'};
     if(partsOf(region).every(p=>p.equality))return {region:null,accuracy:'approximate',notice:'Образ границы строится как параметрическая кривая, без закраски; неразрешённые участки пропускаются.'};
     if(region.union){
       const images=partsOf(region).map(r=>mapRegion(r,mapping));
@@ -89,7 +99,7 @@ export function mapRegion(region:Region,mapping:ComplexMapping):RegionImage {
       return approximate();
     }
     if(region.equality)return {...unsupported,notice:'Образ границы строится как параметрическая кривая, без закраски.'};
-    if(m.kind==='exponential'||m.kind==='joukowski')return approximate();
+    if(m.kind==='exponential'||m.kind==='joukowski'||m.kind==='composition')return approximate();
     if(region.excludedSegments?.length)return approximate();
     if(m.kind==='power'){
       if(region.excluded.some(p=>!zero(p)))return approximate();

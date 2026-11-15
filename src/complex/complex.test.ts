@@ -14,7 +14,7 @@ describe('Controlled complex arithmetic', () => {
     const z = evaluateComplex(complexSource(input as string));
     expect(z.re).toBeCloseTo(re as number,12); expect(z.im).toBeCloseTo(im as number,12);
   });
-  it.each(['1/0','1/(i-i)','0^-1','arg(0)','i^0.5','x','z','a=1','import("x")','random()','[1,2]','i[0]','2;3','constructor(i)','sin(i)','i^1001','\\unknown{1}'])('rejects %s', s => expect(()=>parseComplexGeometry(s)).toThrow());
+  it.each(['1/0','1/(i-i)','0^-1','arg(0)','i^0.5','x','z','a=1','import("x")','random()','[1,2]','i[0]','2;3','constructor(i)','i^1001','\\unknown{1}'])('rejects %s', s => expect(()=>parseComplexGeometry(s)).toThrow());
 });
 describe('Complex geometry', () => {
   it.each([['z=2+3i',2,3],['z=-1-i',-1,-1],['z=3',3,0],['z=2i',0,2]])('%s', (s,re,im) => {

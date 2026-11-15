@@ -1,14 +1,12 @@
+import { REAL_FUNCTIONS, normalizeOperationLatex } from './operations';
 import { parse, type MathNode } from 'mathjs';
 
-const functions: Record<string, (x: number) => number> = {
-  sin: Math.sin, cos: Math.cos, tan: Math.tan, ln: Math.log,
-  log: Math.log10, exp: Math.exp, abs: Math.abs, sqrt: Math.sqrt,
-};
+const functions=REAL_FUNCTIONS;
 
 /** Small, explicit LaTeX grammar. Unknown commands never reach the evaluator. */
 export function latexToExpression(latex: string): string {
   if (latex.length > 500) throw new Error('Выражение слишком длинное (максимум 500 символов).');
-  let source = latex.trim().replace(/^y\s*=/, '').replace(/\\(?:left|right)/g, '')
+  let source = normalizeOperationLatex(latex).trim().replace(/^y\s*=/, '').replace(/\\(?:left|right)/g, '')
     .replace(/\\[,;! ]/g, '').replace(/\\(?:operatorname|mathrm)\{(sin|cos|tan|ln|log|exp|abs|e)\}/g, '$1');
   let i = 0;
   function group(): string {

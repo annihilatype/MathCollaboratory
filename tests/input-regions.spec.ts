@@ -16,7 +16,7 @@ test.beforeEach(async({page})=>{await page.goto('/');await page.getByRole('switc
 test('physical and virtual Re/Im produce safe nested operators in geometry and mappings',async({page})=>{
   for(const s of ['Re(z)<2','Im(z)>=0','Re(z)=1']){await type(field(page),page,s);await expect(page.getByRole('alert')).toHaveCount(0);expect(await field(page).evaluate(e=>(e as HTMLElement&{value:string}).value)).toMatch(/\\operatorname\{\\mathrm\{(?:Re|Im)\}\}/);}
   await type(field(page),page,'');await field(page).evaluate(e=>(e as HTMLElement&{executeCommand:(s:string)=>void}).executeCommand('showVirtualKeyboard'));
-  await page.locator('.MLK__keycap').filter({hasText:/^Re\(/}).click();await expect(page.getByRole('alert')).toContainText('Заполните пустое поле');
+  await page.getByRole('tab',{name:'Комплексная',exact:true}).click();await page.locator('.MLK__layer.is-visible .MLK__keycap').filter({hasText:/^Re$/}).click();await expect(page.getByRole('alert')).toContainText('Заполните пустое поле');
   await page.keyboard.type('z');await page.keyboard.press('ArrowRight');await page.keyboard.type('<2');await expect(page.getByRole('alert')).toHaveCount(0);
   await field(page).evaluate(e=>(e as HTMLElement&{executeCommand:(s:string)=>void}).executeCommand('hideVirtualKeyboard'));
   await input(field(page),'z=2+3i');await toggle(page).click();await expect(page.locator('.mapping-editor-slot')).toHaveCSS('opacity','1');
@@ -56,8 +56,9 @@ test('shifted disks use numerical powers, retain exact paths, and render screens
   await input(field(page),'|z-1-i|<1');await toggle(page).click();
   for(const f of ['z^2','z^3']){await input(formula(page),f);await ready(page);await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','approximate');}
   await input(field(page),'|z|<2');await input(formula(page),'z^2');await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','exact');await expect(numeric(page)).toHaveCount(0);
-  await input(formula(page),'sin(z)');await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','unsupported');await expect(page.locator('.region-notice')).toContainText('не закрашен');
-  await input(field(page),'Re(z)<2');await input(formula(page),'exp(z)');await expect(page.locator('.region-notice')).toContainText('32 ветвей');
+  await input(formula(page),'sin(z)');await ready(page);await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','approximate');
+  await input(formula(page),'ln(z)');await expect(page.locator('.region-accuracy')).toHaveAttribute('data-accuracy','unsupported');await expect(page.locator('.region-notice')).toContainText('обратных ветвей');
+  await input(field(page),'Re(z)<2');await input(formula(page),'exp(z)');await expect(page.locator('.region-notice')).toContainText('диапазон Im');
   await input(field(page),'\\left\\lbrace z:1<|z|<2\\right\\rbrace');
   await page.setViewportSize({width:1440,height:960});
   await page.locator('.complex-workspace').evaluate(e=>Promise.all(e.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));

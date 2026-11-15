@@ -26,7 +26,8 @@ export type RegionTransform =
   | { kind:'mobius'; a:ComplexCoordinate; b:ComplexCoordinate; c:ComplexCoordinate; d:ComplexCoordinate; conjugate:boolean; excluded:ComplexCoordinate[] }
   | { kind:'power'; exponent:number }
   | { kind:'exponential'; scale?:ComplexCoordinate; offset?:ComplexCoordinate }
-  | { kind:'joukowski' };
+  | { kind:'joukowski' }
+  | { kind:'composition';steps:RegionTransform[] };
 export function constraint(a:number,b:number,c:number,d:number,strict:boolean):RegionConstraint {
   const scale=Math.max(Math.abs(a),Math.abs(b),Math.abs(c),Math.abs(d));
   if(!Number.isFinite(scale))throw new Error('Границы области слишком велики для точного построения.');
