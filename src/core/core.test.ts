@@ -1,3 +1,4 @@
+import {evaluateComplex as legacyComplex} from '../complex/math';
 import {describe,it,expect} from 'vitest';
 import {compileReal,compileComplex,compileMapping,compileGeometry,evaluateReal,evaluateComplex,evaluateMapping,bindGeometry,bindMapping} from './compile';
 import {analyzeDomain,checkDomain} from './domain';
@@ -48,6 +49,11 @@ describe('Math core: syntax, semantics and parameter binding',()=>{
   const union=ok(compileGeometry('Re(z)<0 or Im(z)>1'));expect(union.semantics).toMatchObject({definition:{kind:'union'}});
   const p2=ok(compileMapping('1/(1/(z-1))')),d=analyzeDomain(p2);
   for(const condition of d.conditions)for(const operand of condition.operands){let node:unknown=p2.document.ast;for(const key of operand.path.split(/[.\[\]]/).filter(Boolean))node=(node as Record<string,unknown>)[key];expect((node as {toString:()=>string}).toString()).toBe(operand.expression);}
+ });
+ it('does not let a mutable legacy value corrupt a cached constant or parameter',()=>{
+  const first=legacyComplex('7');first.re=99;first.im=5;expect(legacyComplex('7').re).toBe(7);expect(legacyComplex('7').im).toBe(0);
+  const scope={a:2},parameter=legacyComplex('a',scope);parameter.re=-99;parameter.im=3;expect(legacyComplex('a',scope).re).toBe(2);expect(legacyComplex('a',scope).im).toBe(0);
+  const program=ok(compileComplex('a')),value=valueOf(evaluateComplex(program,scope))!;value.re=100;expect(valueOf(evaluateComplex(program,scope))).toEqual({re:2,im:0});
  });
  it('preserves complex arithmetic and existing scalar/graph conventions',()=>{
   for(const [s,re,im] of [['i^2',-1,0],['(1+i)(1-i)',2,0],['abs(3+4i)',5,0],['sqrt(-1)',0,1]] as const){const v=valueOf(evaluateComplex(ok(compileComplex(s))))!;expect(v.re).toBeCloseTo(re,12);expect(v.im).toBeCloseTo(im,12);}

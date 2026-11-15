@@ -17,7 +17,7 @@ const parameterValues=new WeakMap<RealScope,Map<string,{number:number;value:Comp
 function parameterValue(p:RealScope,name:string):Complex {
  if(!Object.hasOwn(p,name))throw new Error(`Не задан параметр ${name}.`);const number=p[name];if(!Number.isFinite(number))throw new Error(`Параметр ${name} должен быть конечным вещественным числом.`);
  const values=parameterValues.get(p)??new Map<string,{number:number;value:Complex}>(),old=values.get(name);if(old?.number===number)return old.value;
- const value=complex(number,0);values.set(name,{number,value});parameterValues.set(p,values);return value;
+ const value=Object.freeze(complex(number,0));values.set(name,{number,value});parameterValues.set(p,values);return value;
 }
 const programs=new WeakMap<MathNode,Map<boolean,ComplexProgram>>();
 export function buildComplexEvaluator(root:MathNode,mapping=false,parameters:RealScope={}):(z?:Complex)=>Complex {
@@ -28,7 +28,8 @@ export function buildComplexEvaluator(root:MathNode,mapping=false,parameters:Rea
     if(!Object.hasOwn(parameters,n.name))throw new Error('Недопустимое выражение. Не задан параметр '+n.name+'.');
     if(!Number.isFinite(parameters[n.name]))throw new Error(`Параметр ${n.name} должен быть конечным вещественным числом.`);
   });
-  return z=>run(z,parameters);
+  // Internal cached constants are immutable; preserve mutable legacy return values.
+  return z=>{const value=run(z,parameters);return Object.isFrozen(value)?complex(value.re,value.im):value;};
 }
 export function buildComplexProgram(root:MathNode,mapping=false):ComplexProgram {
   const cached=programs.get(root)?.get(mapping);if(cached)return cached;
@@ -41,7 +42,7 @@ export function buildComplexProgram(root:MathNode,mapping=false):ComplexProgram 
   function build(node: MathNode): Evaluate {
     if (++count > (mapping ? 80 : 150)) throw new Error('Выражение слишком сложное.');
     const n = node as MathNode & { value: number; name: string; content: MathNode; args: MathNode[]; op: string; fn: MathNode };
-    if (node.type === 'ConstantNode' && typeof n.value === 'number') { const value=finite(complex(n.value,0)); return ()=>value; }
+    if (node.type === 'ConstantNode' && typeof n.value === 'number') { const value=Object.freeze(finite(complex(n.value,0))); return ()=>value; }
     if (node.type === 'SymbolNode') {
       if(n.name==='pi')return ()=>complex(Math.PI,0);
       if(n.name==='e')return ()=>complex(Math.E,0);
