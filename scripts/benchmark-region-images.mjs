@@ -2,7 +2,7 @@
 // Median synchronous sampling time, same domains/view and CPU for both versions.
 import {createServer} from 'vite';
 import {execFileSync} from 'node:child_process';
-import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 const root=process.cwd(),temp=await mkdtemp(join(root,'.benchmark-'));
 const server=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'error'});
@@ -12,8 +12,8 @@ try{
  const current=await server.ssrLoadModule('/src/regions/inverse.ts');
  const versions=[['current',current]];
  if(process.argv[2]){
-  const text=execFileSync('git',['show',`${process.argv[2]}:src/regions/inverse.ts`],{encoding:'utf8'}).replaceAll("'./model'","'../src/regions/model'").replaceAll("'../math/diagnostics'","'../src/math/diagnostics'");
-  await writeFile(join(temp,'baseline.ts'),text);versions.unshift(['baseline',await server.ssrLoadModule(join(temp,'baseline.ts'))]);
+  execFileSync('tar',['-x','-C',temp],{input:execFileSync('git',['archive','--format=tar',process.argv[2],'src'])});
+  versions.unshift(['baseline',await server.ssrLoadModule(join(temp,'src/regions/inverse.ts'))]);
  }
  const scenes=[['half-strip','{z:0<Im(z)<pi/2,Re(z)>0}','exp(2*z)'],['annulus','1<|z|<2','exp(z)'],['sector','{z:|arg(z)|<pi/8,z notin [0,1]}','z^8']];
  const output=[];

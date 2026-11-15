@@ -64,7 +64,7 @@ test('shifted disks use numerical powers, retain exact paths, and render screens
   await page.locator('.complex-workspace').evaluate(e=>Promise.all(e.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
   await expect.poll(async()=>(await numeric(page).getAttribute('data-sample-view'))===(await image(page).getAttribute('data-viewport'))).toBe(true);
   await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('mathcollaboratory.v1')!);s.mapping.viewport=[-1,4,8,-4];localStorage.setItem('mathcollaboratory.v1',JSON.stringify(s));});
-  await page.reload();await ready(page);await expect(page.locator('.sampling-details')).toBeVisible();
+  await page.reload();await ready(page);await page.getByText('Численные подробности',{exact:true}).click();await expect(page.locator('.sampling-details')).toBeVisible();
   const prefix=browserName==='chromium'?'':browserName+'-';await page.screenshot({path:`test-results/${prefix}regions-v041-light.png`});
   await page.getByRole('button',{name:'Тёмная тема',exact:true}).click();await ready(page);await page.screenshot({path:`test-results/${prefix}regions-v041-dark.png`});
   await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:375,height:850});await ready(page);

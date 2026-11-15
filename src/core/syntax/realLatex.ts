@@ -21,6 +21,13 @@ export function latexToExpression(latex: string): string {
     if(command){i+=command[0].length;return '('+fractionArgument()+'/'+fractionArgument()+')';}
     throw new Error('У дроби нужны числитель и знаменатель: \\frac{1}{x}.');
   }
+  // MathLive emits single-token TeX roots such as \sqrt4 and \sqrt x.
+  function rootArgument():string {
+    try{return fractionArgument();}catch(error){
+      if((error as Error).message.startsWith('У дроби нужны'))throw new Error('У корня нужно подкоренное выражение: \\sqrt{...}.');
+      throw error;
+    }
+  }
   function read(nested = false): string {
     let out = '';
     while (i < source.length) {
@@ -35,7 +42,7 @@ export function latexToExpression(latex: string): string {
         if (!command) throw new Error('Неизвестная математическая команда.');
         i += command.length;
         if (command === 'frac' || command === 'dfrac' || command === 'tfrac') out += '(' + fractionArgument() + '/' + fractionArgument() + ')';
-        else if (command === 'sqrt') out += ' sqrt' + group();
+        else if (command === 'sqrt') out += ' sqrt' + rootArgument();
         else if (command === 'exponentialE') out += ' e ';
         else if (command === 'pi') out += ' pi ';
         else if (command === 'cdot' || command === 'times') out += '*';

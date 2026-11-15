@@ -8,10 +8,10 @@ import type { MappingState } from '../state/store';
 import type { Viewport } from '../state/view';
 import { useImagePlots } from './useImagePlots';
 const EMPTY:never[]=[],PARAMETERS={};
-function PlaneHeading({image,visible}:{image?:boolean;visible:boolean}){
+function PlaneHeading({image,visible,children}:{image?:boolean;visible:boolean;children?:React.ReactNode}){
   return <header className={`plane-heading ${image?'image-heading':'source-heading'}`} aria-hidden={!visible}>
     <span className="plane-badge" aria-hidden="true">{image?'w':'z'}</span>
-    <div><h2>{image?'Плоскость образов':'Исходная плоскость'}</h2><span className="plane-subtitle">{image?'w = f(z)':'z · исходные объекты'}</span></div>
+    <div><h2>{image?'Плоскость образов':'Исходная плоскость'}</h2><span className="plane-subtitle">{image?'w = f(z)':'z · исходные объекты'}</span>{children}</div>
   </header>;
 }
 export function ComplexWorkspace({objects,mapping,state,viewport,theme,onSourceView,onImageView,onPointMove}:{objects:ComplexPlot[];mapping:ComplexMapping|null;state:MappingState;viewport:Viewport;theme:'light'|'dark';onSourceView:(v:Viewport)=>void;onImageView:(v:Viewport)=>void;onPointMove:PointMove}){
@@ -22,9 +22,8 @@ export function ComplexWorkspace({objects,mapping,state,viewport,theme,onSourceV
   return <div className={`complex-workspace ${state.enabled?'has-mapping':''}`} data-mapping={state.enabled}>
     <div className="plane-slot source-slot"><PlaneHeading visible={state.enabled}/><Graph mode="complex" label={state.enabled?'Исходная плоскость z':undefined} plots={EMPTY} parameters={PARAMETERS} objects={objects} viewport={viewport} theme={theme} onViewportChange={onSourceView} onPointMove={state.enabled?onPointMove:undefined}/></div>
     <div className="plane-slot image-slot" aria-hidden={!state.enabled} inert={!state.enabled}>
-      <PlaneHeading image visible={state.enabled}/>
+      <PlaneHeading image visible={state.enabled}>{state.enabled&&<RegionImageNotice results={regionResults} hasLines={objects.some(p=>p.geometry.kind==='line')} hasNumericalObjects={mapping!==null&&objects.some(p=>p.geometry.kind!=='region')}/>}</PlaneHeading>
       {(everOpened||state.enabled)&&<Graph mode="complex" axisSymbol="w" label="Плоскость образов w" plots={EMPTY} parameters={PARAMETERS} objects={images} viewport={state.viewport} theme={theme} onViewportChange={onImageView}/>}
-      {state.enabled&&<RegionImageNotice results={regionResults} hasLines={objects.some(p=>p.geometry.kind==='line')}/>}
     </div>
   </div>;
 }

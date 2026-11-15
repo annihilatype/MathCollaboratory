@@ -33,13 +33,20 @@ export function complexSource(latex: string): string {
     if(command){i+=command[0].length;return '('+fractionArgument()+'/'+fractionArgument()+')';}
     throw new Error('У дроби нужны числитель и знаменатель: \\frac{1}{z}.');
   }
+  // MathLive emits single-token TeX roots such as \sqrt4 and \sqrt x.
+  function rootArgument():string {
+    try{return fractionArgument();}catch(error){
+      if((error as Error).message.startsWith('У дроби нужны'))throw new Error('У корня нужно подкоренное выражение: \\sqrt{...}.');
+      throw error;
+    }
+  }
   function read(nested = false): string {
     let out = '';
     while (i < s.length) {
       if (s[i] === '}') { i++; if (!nested) throw new Error('Лишняя скобка.'); return out; }
       if (s[i] === '{') { i++; out += '(' + read(true) + ')'; }
       else if (/^\\(?:frac|dfrac|tfrac)(?![a-zA-Z])/.test(s.slice(i))) { i += /^\\[a-z]+/.exec(s.slice(i))![0].length; out += '(' + fractionArgument() + '/' + fractionArgument() + ')'; }
-      else if(/^\\sqrt(?![a-zA-Z])/.test(s.slice(i))){i+=5;out+='sqrt'+group();}
+      else if(/^\\sqrt(?![a-zA-Z])/.test(s.slice(i))){i+=5;out+='sqrt'+rootArgument();}
       else if(s[i]==='_'){i++;const sub=s[i]==='{'?group().slice(1,-1):s[i++];if(!/^[a-zA-Z0-9]+$/.test(sub??''))throw new Error('Индекс параметра должен состоять из букв и цифр.');out+='_'+sub+' ';}
       else if (s.startsWith('\\overline', i)) { i += 9; out += 'conj' + group(); }
       else out += s[i++];

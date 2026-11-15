@@ -3,7 +3,7 @@ import type { ComplexGeometry, ComplexMapping, ComplexCoordinate } from '../comp
 export const formatComplex=(z:ComplexCoordinate)=>`${Number(z.re.toPrecision(7))} ${z.im<0?'−':'+'} ${Number(Math.abs(z.im).toPrecision(7))}i`;
 export function PointDetails({geometry:g,mapping}:{geometry:ComplexGeometry;mapping?:ComplexMapping|null}){
   if(g.kind==='region'&&!mapping&&g.angleConvention)return <p className="object-details">{g.angleConvention}</p>;
-  if(g.kind==='region'&&mapping){const image=mapRegion(g,mapping);return <p className="object-details region-accuracy" data-accuracy={image.accuracy}>Образ: {image.accuracy==='exact'?'точный':image.accuracy==='approximate'?'численно приближённый':'не поддерживается'}{g.angleConvention&&<><br/>{g.angleConvention}</>}</p>;}
+  if(g.kind==='region'&&mapping){const image=mapRegion(g,mapping);return <p className="object-details region-accuracy" data-accuracy={image.accuracy}>Образ: {image.accuracy==='exact'?'аналитическое преобразование (float64)':image.accuracy==='approximate'?'численно приближённый':'не поддерживается'}{g.angleConvention&&<><br/>{g.angleConvention}</>}</p>;}
   if(g.kind!=='point')return null;
   const w=mapping?.evaluate(g.value);
   return <p className="object-details">Re = {g.value.re}; Im = {g.value.im}<br/>|z| = {Number(g.modulus.toPrecision(7))}; arg z = {g.argument===null?'не определён':Number(g.argument.toPrecision(7))+' рад'}
