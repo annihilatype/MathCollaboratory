@@ -20,6 +20,8 @@ export function coefficientRegionStatus(region:Region,z:C.ComplexInterval):CellC
   // Rays may point in either direction: defer their classification entirely.
   if(s.ray||R.intersection(z.re,re)&&R.intersection(z.im,im))status='unknown';
  }
- return status;
+ // Boundary metadata alone must never turn a two-dimensional cell into
+ // a proved subset of a line/circle if its redundant constraints are absent.
+ return region.equality&&status==='inside'?'unknown':status;
 }
 export function classifyCoefficientRegion(region:Region,box:Box):MathResult<CellClassification>{try{return classificationResult(coefficientRegionStatus(region,boxRectangle(box)));}catch(e){return failedInterval(e);}}

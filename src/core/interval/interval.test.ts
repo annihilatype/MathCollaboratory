@@ -85,6 +85,7 @@ describe('verified geometric predicates and adaptive tasks',()=>{
   expect(classified('{z:|z-(1+i)|<2,Im(z)>0}',R.interval(.9,1.1),R.interval(.9,1.1))).toMatchObject({kind:'interval-confirmed',enclosure:'inside'});
   expect(classified('Re(z)<0 or Re(z)>1',R.interval(.1,.9))).toMatchObject({kind:'interval-confirmed',enclosure:'outside'});expect(classified('{z:|z|<2,z!=0}',R.interval(0))).toMatchObject({kind:'interval-confirmed',enclosure:'outside'});
   expect(classified('{z:|z|<2,z notin [0,1]}',R.interval(.2,.5),R.interval(.1,.2))).toMatchObject({kind:'interval-confirmed',enclosure:'inside'});expect(classified('{z:|z|<2,z notin [0,1]}',R.interval(.2,.5))).toMatchObject({kind:'uncertain'});
+  expect(classifyCoefficientRegion({kind:'region',constraints:[],excluded:[],equality:{kind:'line',axis:'re',value:0}},[-1,1,-1,1])).toMatchObject({kind:'uncertain'});
   const model={kind:'region' as const,constraints:[{a:1,b:0,c:0,d:-1,strict:true}],excluded:[]};expect(analyzeSourceBox(model,[-2,2,-2,2],true)).toMatchObject({kind:'approximate',accuracy:{certified:false}});
   expect(classifyCoefficientRegion({kind:'region',constraints:[{a:1,b:0,c:0,d:-1,strict:true}],excluded:[]},[2,3,0,1])).toMatchObject({kind:'interval-confirmed',enclosure:'outside'});
  });
