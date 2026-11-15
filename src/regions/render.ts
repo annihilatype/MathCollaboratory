@@ -1,14 +1,11 @@
+import {halfplanePolygon} from '../core/geometry/clip';
+export {halfplanePolygon} from '../core/geometry/clip';
 import type JXG from 'jsxgraph';
 import type { DrawablePlot } from '../complex/render';
 import { boundary, contains,partsOf, type Region, type RegionConstraint } from './model';
 import type { Viewport } from '../state/view';
 const NS='http://www.w3.org/2000/svg';let serial=0;
 function node<K extends keyof SVGElementTagNameMap>(name:K,attrs:Record<string,string|number>={}){const e=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));return e;}
-export function halfplanePolygon(q:RegionConstraint,view:Viewport):[number,number][]{
-  const corners:[number,number][]=[[view[0],view[1]],[view[2],view[1]],[view[2],view[3]],[view[0],view[3]]],out:[number,number][]=[];
-  const value=(p:number[])=>q.b*p[0]+q.c*p[1]+q.d;
-  for(let i=0;i<4;i++){const a=corners[i],b=corners[(i+1)%4],av=value(a),bv=value(b);if(av<=0)out.push(a);if((av<0&&bv>0)||(av>0&&bv<0)){const t=av/(av-bv);out.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])]);}}return out;
-}
 export function createRegionLayer(board:JXG.Board){
   const renderer=board.renderer as typeof board.renderer&{layer:SVGGElement[];defs:SVGDefsElement};
   const fills=node('g',{'data-region-layer':'fill','pointer-events':'none'}),strokes=node('g',{'data-region-layer':'boundary','pointer-events':'none'});renderer.layer[0].append(fills);renderer.layer[4].append(strokes);

@@ -11,7 +11,7 @@ import { ResetDialog } from './components/ResetDialog';
 import { MathEditor } from './components/MathEditor';
 import { Graph } from './components/Graph';
 import { ParameterControl } from './components/ParameterControl';
-import { parseExpression } from './math/expression';
+import { parseRealForGraph as parseExpression } from './core/analysis';
 import { COLORS, initialMapping, initialComplex, initialState, loadState, STORAGE_KEY, type Expression } from './state/store';
 
 export function App() {
@@ -39,7 +39,7 @@ export function App() {
   const add = (latex='') => updateExpressions(items => [...items, {id:crypto.randomUUID(), latex, color:COLORS[items.length%COLORS.length], visible:true}]);
   const rows = isComplex ? complexAnalyzed.map(e => ({...e, parsed:null})) : analyzed.map(e => ({...e, geometry:null}));
   return <div className="app-shell">
-    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.5.1</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
+    <header className="app-header"><div className="brand"><span className="brand-mark">m<span>·</span></span><div><strong>MathCollaboratory</strong><span>Интерактивная математическая лаборатория</span></div></div><div className="header-actions"><span className="version">v0.6</span><button className="theme-button" aria-label={state.theme==='light'?'Тёмная тема':'Светлая тема'} title="Переключить тему" onClick={() => setState(s => ({...s,theme:s.theme==='light'?'dark':'light'}))}>{state.theme==='light'?'☾':'☀'}</button></div></header>
     <MathInputTools complexMode={isComplex}><main><aside className="sidebar"><div className="module-heading"><span className="eyebrow">МАТЕМАТИЧЕСКИЕ ИНСТРУМЕНТЫ</span><h1>{isComplex ? 'Комплексная плоскость' : 'Графики функций'}<span>↗</span></h1></div>
       <button type="button" className="mode-switch" role="switch" aria-checked={isComplex} onClick={()=>setState(s=>({...s,mode:s.mode === 'complex' ? 'real' : 'complex'}))}><span>Комплексная плоскость</span><span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span></button>
       {isComplex&&<MappingControls onToggle={()=>setState(s=>({...s,mapping:{...s.mapping,enabled:!s.mapping.enabled}}))} state={state.mapping} error={mapped.error} onChange={update=>setState(s=>({...s,mapping:{...s.mapping,...update}}))}/>}

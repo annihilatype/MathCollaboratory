@@ -5,7 +5,8 @@ import type { ComplexGeometry, ComplexCoordinate } from './geometry';
 import type { ImagePath } from '../mapping/sample';
 import type { Viewport } from '../state/view';
 export interface ComplexPlot { id:string; color:string; geometry:ComplexGeometry }
-export interface ImageCurve { kind:'image'; sample:(view:Viewport,unit:number)=>ImagePath }
+export type {ImageCurve} from '../core/mapping/prepare';
+import type {ImageCurve} from '../core/mapping/prepare';
 export interface DrawablePlot { id:string; color:string; geometry:ComplexGeometry|ImageCurve|ImageRegion }
 export type PointMove = (id:string,z:ComplexCoordinate)=>void;
 export function createObjectLayer(board:JXG.Board,onMove:()=>PointMove|undefined){

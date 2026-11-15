@@ -1,16 +1,17 @@
 {
   "name": "mathcollaboratory",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json",
+    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "postinstall": "node scripts/copy-fonts.mjs",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "typecheck:core": "tsc --noEmit -p tsconfig.core.json"
   },
   "dependencies": {
     "jsxgraph": "^1.12.0",

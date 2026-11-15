@@ -1,33 +1,31 @@
-import {complex,exp,sin,cos,tan,sinh,cosh,tanh,asin,acos,atan,sqrt,log,conj,abs,divide,type Complex} from 'mathjs';
+import {MATH_OPERATIONS,type MathOperation} from '../core/operations';
+export {REAL_FUNCTIONS,COMPLEX_FUNCTIONS,OPERATION_NAMES,canonicalName} from '../core/operations';
+export {normalizeOperationLatex} from '../core/syntax/operationLatex';
 export type OperationCategory='Основная'|'Комплексная'|'Расширенная';
-export interface Operation { name:string; label:string; category:OperationCategory; description:string; example:string; latex:string; aliases?:string[]; real?: (x:number)=>number; complex?: (z:Complex)=>Complex|number; region:string }
-const c=(name:string,label:string,category:OperationCategory,description:string,example:string,latex:string,region:string,real?:Operation['real'],fn?:Operation['complex'],aliases?:string[]):Operation=>({name,label,category,description,example,latex,region,...(real?{real}:{}),...(fn?{complex:fn}:{}),...(aliases?{aliases}: {})});
-export const OPERATIONS:readonly Operation[]=[
- c('sin','sin','Основная','Синус; аргумент в радианах.','sin(x), sin(z)','\\sin(#0)','Обратный метод при конечном диапазоне Re источника.',Math.sin,z=>sin(z) as Complex),
- c('cos','cos','Основная','Косинус; аргумент в радианах.','cos(x), cos(z)','\\cos(#0)','Обратный метод при конечном диапазоне Re источника.',Math.cos,z=>cos(z) as Complex),
- c('tan','tan','Основная','Тангенс; у функции есть полюса.','tan(x), tan(z)','\\tan(#0)','Обратный метод при конечном диапазоне Re источника.',Math.tan,z=>tan(z) as Complex),
- c('ln','ln','Основная','Натуральный логарифм. Для комплексных чисел — главная ветвь.','ln(x), ln(1+i)','\\ln(#0)','Главная ветвь: обратная заливка пока не реализована.',Math.log,z=>log(z) as Complex),
- c('log','log₁₀','Основная','Десятичный логарифм; комплексная главная ветвь.','log(100)','\\log(#0)','Обратная заливка пока не реализована.',Math.log10,z=>divide(log(z) as Complex,complex(Math.LN10,0)) as Complex),
- c('exp','exp','Основная','Экспонента; exp(u)=e^u.','exp(2*z)','\\exp(#0)','До 32 логарифмических ветвей на ступень; нужен конечный диапазон Im аргумента.',Math.exp,z=>exp(z) as Complex),
- c('sqrt','√','Основная','Квадратный корень; для комплексных значений — главный корень.','sqrt(x), sqrt(-1)','\\sqrt{#0}','Главная ветвь: обратная заливка пока не реализована.',Math.sqrt,z=>sqrt(z) as Complex),
- c('abs','|·|','Комплексная','Модуль комплексного числа, абсолютное значение вещественного.','abs(z), |z|<2','\\operatorname{abs}(#0)','В условиях областей поддерживается. Образ может быть одномерным; заливка abs не строится.',Math.abs,z=>abs(z) as number),
- c('conj','conj','Комплексная','Комплексное сопряжение.','conj(z)','\\operatorname{conj}(#0)','Точное преобразование или ступень обратной композиции.',undefined,z=>conj(z) as Complex),
- c('Re','Re','Комплексная','Вещественная часть.','Re(z)<2','\\operatorname{Re}(#0)','В условиях поддерживается; отдельный образ Re — не площадь.',undefined,z=>z.re,['re']),
- c('Im','Im','Комплексная','Мнимая часть.','Im(z)>0','\\operatorname{Im}(#0)','В условиях поддерживается; отдельный образ Im — не площадь.',undefined,z=>z.im,['im']),
- c('arg','arg','Комплексная','Главный аргумент в (−π,π], не определён в нуле.','arg(z), 0<arg(z)<pi/2','\\operatorname{arg}(#0)','Угловые окна поддерживаются; заливка arg не строится.',undefined,z=>{if(z.re===0&&z.im===0)throw new Error('Аргумент нуля не определён.');const a=Math.atan2(z.im,z.re);return a===-Math.PI?Math.PI:a;},['Arg']),
- ...[['asin','arcsin','Арксинус, главная ветвь.',Math.asin,asin],['acos','arccos','Арккосинус, главная ветвь.',Math.acos,acos],['atan','arctan','Арктангенс, главная ветвь.',Math.atan,atan],['sinh','sinh','Гиперболический синус.',Math.sinh,sinh],['cosh','cosh','Гиперболический косинус.',Math.cosh,cosh],['tanh','tanh','Гиперболический тангенс.',Math.tanh,tanh]].map(([name,label,description,real,fn])=>c(name as string,label as string,'Расширенная',description as string,`${name}(x), ${name}(z)`,`\\operatorname{${name}}(#0)`,'Обратная заливка этого семейства пока не реализована.',real as (x:number)=>number,z=>(fn as (z:Complex)=>Complex)(z),name!==label?[label as string]:undefined)),
- c('floor','floor','Расширенная','Округление вниз; только вещественные графики.','floor(x)','\\operatorname{floor}(#0)','Комплексная функция не поддерживается.',Math.floor),
- c('ceil','ceil','Расширенная','Округление вверх; только вещественные графики.','ceil(x)','\\operatorname{ceil}(#0)','Комплексная функция не поддерживается.',Math.ceil),
- c('round','round','Расширенная','Округление к ближайшему целому; только вещественные графики.','round(x)','\\operatorname{round}(#0)','Комплексная функция не поддерживается.',Math.round),
+export interface Operation extends MathOperation {label:string;category:OperationCategory;description:string;example:string;latex:string;region:string}
+type Presentation=Omit<Operation,'real'|'complex'>;
+const presentation:Presentation[]=[
+ {"name":"sin","label":"sin","category":"Основная","description":"Синус; аргумент в радианах.","example":"sin(x), sin(z)","latex":"\\sin(#0)","region":"Обратный метод при конечном диапазоне Re источника."},
+ {"name":"cos","label":"cos","category":"Основная","description":"Косинус; аргумент в радианах.","example":"cos(x), cos(z)","latex":"\\cos(#0)","region":"Обратный метод при конечном диапазоне Re источника."},
+ {"name":"tan","label":"tan","category":"Основная","description":"Тангенс; у функции есть полюса.","example":"tan(x), tan(z)","latex":"\\tan(#0)","region":"Обратный метод при конечном диапазоне Re источника."},
+ {"name":"ln","label":"ln","category":"Основная","description":"Натуральный логарифм. Для комплексных чисел — главная ветвь.","example":"ln(x), ln(1+i)","latex":"\\ln(#0)","region":"Главная ветвь: обратная заливка пока не реализована."},
+ {"name":"log","label":"log₁₀","category":"Основная","description":"Десятичный логарифм; комплексная главная ветвь.","example":"log(100)","latex":"\\log(#0)","region":"Обратная заливка пока не реализована."},
+ {"name":"exp","label":"exp","category":"Основная","description":"Экспонента; exp(u)=e^u.","example":"exp(2*z)","latex":"\\exp(#0)","region":"До 32 логарифмических ветвей на ступень; нужен конечный диапазон Im аргумента."},
+ {"name":"sqrt","label":"√","category":"Основная","description":"Квадратный корень; для комплексных значений — главный корень.","example":"sqrt(x), sqrt(-1)","latex":"\\sqrt{#0}","region":"Главная ветвь: обратная заливка пока не реализована."},
+ {"name":"abs","label":"|·|","category":"Комплексная","description":"Модуль комплексного числа, абсолютное значение вещественного.","example":"abs(z), |z|<2","latex":"\\operatorname{abs}(#0)","region":"В условиях областей поддерживается. Образ может быть одномерным; заливка abs не строится."},
+ {"name":"conj","label":"conj","category":"Комплексная","description":"Комплексное сопряжение.","example":"conj(z)","latex":"\\operatorname{conj}(#0)","region":"Точное преобразование или ступень обратной композиции."},
+ {"name":"Re","label":"Re","category":"Комплексная","description":"Вещественная часть.","example":"Re(z)<2","latex":"\\operatorname{Re}(#0)","region":"В условиях поддерживается; отдельный образ Re — не площадь."},
+ {"name":"Im","label":"Im","category":"Комплексная","description":"Мнимая часть.","example":"Im(z)>0","latex":"\\operatorname{Im}(#0)","region":"В условиях поддерживается; отдельный образ Im — не площадь."},
+ {"name":"arg","label":"arg","category":"Комплексная","description":"Главный аргумент в (−π,π], не определён в нуле.","example":"arg(z), 0<arg(z)<pi/2","latex":"\\operatorname{arg}(#0)","region":"Угловые окна поддерживаются; заливка arg не строится."},
+ {"name":"asin","label":"arcsin","category":"Расширенная","description":"Арксинус, главная ветвь.","example":"asin(x), asin(z)","latex":"\\operatorname{asin}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"acos","label":"arccos","category":"Расширенная","description":"Арккосинус, главная ветвь.","example":"acos(x), acos(z)","latex":"\\operatorname{acos}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"atan","label":"arctan","category":"Расширенная","description":"Арктангенс, главная ветвь.","example":"atan(x), atan(z)","latex":"\\operatorname{atan}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"sinh","label":"sinh","category":"Расширенная","description":"Гиперболический синус.","example":"sinh(x), sinh(z)","latex":"\\operatorname{sinh}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"cosh","label":"cosh","category":"Расширенная","description":"Гиперболический косинус.","example":"cosh(x), cosh(z)","latex":"\\operatorname{cosh}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"tanh","label":"tanh","category":"Расширенная","description":"Гиперболический тангенс.","example":"tanh(x), tanh(z)","latex":"\\operatorname{tanh}(#0)","region":"Обратная заливка этого семейства пока не реализована."},
+ {"name":"floor","label":"floor","category":"Расширенная","description":"Округление вниз; только вещественные графики.","example":"floor(x)","latex":"\\operatorname{floor}(#0)","region":"Комплексная функция не поддерживается."},
+ {"name":"ceil","label":"ceil","category":"Расширенная","description":"Округление вверх; только вещественные графики.","example":"ceil(x)","latex":"\\operatorname{ceil}(#0)","region":"Комплексная функция не поддерживается."},
+ {"name":"round","label":"round","category":"Расширенная","description":"Округление к ближайшему целому; только вещественные графики.","example":"round(x)","latex":"\\operatorname{round}(#0)","region":"Комплексная функция не поддерживается."},
 ];
-export const REAL_FUNCTIONS=Object.assign(Object.create(null),Object.fromEntries(OPERATIONS.filter(o=>o.real).map(o=>[o.name,o.real!]))) as Record<string,(x:number)=>number>;
-export const COMPLEX_FUNCTIONS=Object.assign(Object.create(null),Object.fromEntries(OPERATIONS.filter(o=>o.complex).map(o=>[o.name,o.complex!]))) as Record<string,(z:Complex)=>Complex|number>;
-export const OPERATION_NAMES=new Set([...OPERATIONS.flatMap(o=>[o.name,...(o.aliases??[])]),'segment']);
-export function canonicalName(name:string):string{return OPERATIONS.find(o=>o.name===name||o.aliases?.includes(name))?.name??name;}
-export function normalizeOperationLatex(source:string):string{
-  for(let depth=0;depth<16;depth++){
-    const next=source.replace(/\\(?:operatorname|mathrm|mathop)\s*\{\s*([a-zA-Z]+)\s*\}/g,(whole,name:string)=>OPERATION_NAMES.has(name)||['e','i','pi'].includes(name)?canonicalName(name):whole);
-    if(next===source)break;source=next;
-  }
-  return source.replace(/\\(arcsin|arccos|arctan)(?![a-zA-Z])/g,(_m,name:string)=>`\\${canonicalName(name)}`);
-}
+const byName=new Map(presentation.map(p=>[p.name,p]));
+export const OPERATIONS:readonly Operation[]=MATH_OPERATIONS.map(operation=>({...operation,...byName.get(operation.name)!}));
