@@ -65,7 +65,33 @@
 /* Reserve space for explicit desktop input tools; MathLive never covers a board. */
 .input-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:none;min-height:36px;padding:4px 22px;border-top:1px solid var(--line);background:var(--panel);font-size:11px}.input-toolbar>span{margin-right:auto;color:var(--muted)}.input-toolbar button{border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:5px 10px}.input-toolbar button[aria-expanded=true]{color:var(--accent);background:var(--hover)}
 .keyboard-dock{height:0;flex:none;overflow:hidden;background:var(--panel);transition:height 160ms ease;--keycap-height:30px;--keycap-gap:4px;--keycap-max-width:72px;--keycap-font-size:17px;--keycap-small-font-size:13px;--keyboard-background:var(--bg);--keycap-background:var(--panel);--keycap-text:var(--text);--keycap-border:var(--line);--keycap-secondary-background:var(--hover);--keycap-secondary-text:var(--accent);--keyboard-toolbar-background:var(--panel);--keyboard-toolbar-text:var(--text);--keyboard-zindex:100}.keyboard-dock.open{height:205px;border-top:1px solid var(--line)}.keyboard-heading{height:36px;display:flex;align-items:center;justify-content:space-between;max-width:930px;padding:0 10px;margin:auto}.keyboard-heading [role=tablist]{display:flex;gap:4px}.keyboard-heading [role=tab]{font-size:11px;padding:6px 12px;border:0;background:transparent;border-radius:6px}.keyboard-heading [role=tab][aria-selected=true]{background:var(--hover);color:var(--accent)}.keyboard-host{position:relative;height:169px;max-width:930px;margin:auto;overflow:hidden}.keyboard-host .MLK__toolbar{display:none}.keyboard-host .MLK__plate{padding-top:2px;padding-bottom:2px}.keyboard-host .ML__keyboard{width:100%;height:100%}.keyboard-host .MLK__backdrop{box-shadow:none;border:0}
-.function-catalog{width:min(760px,calc(100vw - 40px));max-height:min(720px,85dvh);padding:22px;border:1px solid var(--line);border-radius:14px;color:var(--text);background:var(--panel);box-shadow:0 16px 70px #0003}.function-catalog::backdrop{background:#10182d66}.catalog-heading{display:flex;justify-content:space-between;gap:12px;align-items:start}.catalog-heading h2{font-size:19px}.catalog-heading p{font-size:11px;color:var(--muted);margin:8px 0 18px}.catalog-search{display:block;font-size:11px;color:var(--muted)}.catalog-search input{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);padding:10px;font-size:13px}.catalog-results{max-height:calc(85dvh - 180px);overflow:auto;margin-top:12px}.catalog-results h3{font-size:11px;color:var(--muted);font-weight:600;margin:16px 0 8px}.catalog-entry{display:flex;justify-content:space-between;gap:18px;align-items:start;padding:12px 4px;border-top:1px solid var(--line)}.catalog-entry strong{font-size:14px;color:var(--accent)}.catalog-entry p{margin:4px 0;font-size:12px}.catalog-entry code{font-size:11px}.catalog-entry small{display:block;color:var(--muted);font-size:10px;line-height:1.5;margin-top:7px}.catalog-entry button{flex:none}
 @media(prefers-reduced-motion:reduce){.keyboard-dock{transition:none}}
 @media(max-width:580px){.input-toolbar{padding:4px 12px}.input-toolbar>span{display:none}.keyboard-dock.open{height:205px}}
 .keyboard-host .MLK__backdrop{top:0;bottom:auto;height:100%;transform:none!important}.keyboard-host .MLK__plate{top:5px}
+
+/* All diagnostics participate in header layout, outside the graph viewport. */
+.has-mapping .image-heading{height:auto;min-height:72px;overflow:visible;padding-top:8px;padding-bottom:8px;align-items:flex-start}
+.image-heading>div{min-width:0;flex:1}.image-heading .plane-subtitle{display:none}
+.has-mapping .image-note,.image-note{position:static;margin:0;color:var(--muted);font-size:10px;line-height:1.45;pointer-events:auto}
+.image-precision{display:block;margin-top:3px}.image-diagnostics{margin-top:3px}.image-diagnostics summary{cursor:pointer;color:var(--accent);width:fit-content;font-size:10px}.image-diagnostics-content{max-height:110px;overflow:auto;padding:4px 5px 0 0}.image-diagnostics-content p{margin:4px 0;font-size:10px}.image-diagnostics-content .region-notice{padding:0;background:none}
+.keyboard-host[hidden],.keyboard-heading [hidden]{display:none}
+.keyboard-host .MLK__keycap.template-fraction .ML__latex{font-size:11px}
+.keyboard-host .laboratory-action{position:relative;inset:auto;display:flex;align-items:center;justify-content:center}
+.keyboard-host .laboratory-action svg{width:21px;height:21px;display:block;flex:none}
+.keyboard-navigation{display:flex;align-items:center;gap:8px;min-width:0}.keyboard-heading .functions-button{font:italic 17px Georgia,serif;flex:none;width:38px;height:28px;padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}.keyboard-heading .functions-button:hover,.keyboard-heading .functions-button[aria-expanded=true]{background:var(--hover);color:var(--accent)}
+/* A top-layer menu leaves the keyboard, its selected tab and the boards in place. */
+.function-popover{position:fixed;inset:auto;margin:0;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);max-height:var(--functions-height,340px);overflow:visible;box-shadow:0 8px 30px #14213d26;font-size:12px}
+.function-popover::backdrop{background:transparent}
+.function-popover::after{content:"";position:absolute;left:var(--functions-anchor-x,240px);bottom:-6px;width:10px;height:10px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.function-popover[data-placement=below]::after{bottom:auto;top:-6px;transform:rotate(225deg)}
+.function-menu-scroll{max-height:calc(var(--functions-height,340px) - 22px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:3px}
+.function-menu-scroll section+section{margin-top:15px}.function-menu-scroll h3{font-size:10px;line-height:14px;font-weight:600;color:var(--muted);margin:0 0 6px;letter-spacing:.3px}
+.function-menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.function-menu-grid button{height:35px;min-width:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--text);padding:4px;font-size:16px;line-height:1}
+.function-menu-grid button:hover,.function-menu-grid button:focus-visible{background:var(--hover);color:var(--accent)}
+.function-menu-grid .ML__latex{font-size:16px;color:inherit}
+/* A laptop's workspace must respect the space reserved for input tools. */
+@media(min-width:581px) and (max-width:1100px){
+ .complex-workspace,.complex-workspace.has-mapping{height:100%;flex-shrink:1;overflow-y:auto}
+ .complex-workspace.has-mapping{grid-template-rows:minmax(330px,1fr) minmax(330px,1fr)}
+}

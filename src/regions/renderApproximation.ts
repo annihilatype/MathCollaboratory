@@ -6,7 +6,7 @@ import type {SamplingQuality,ImageRegion} from '../core/mapping/prepare';
 export type {SamplingQuality,ImageRegion} from '../core/mapping/prepare';
 const NS='http://www.w3.org/2000/svg';
 let layerIndex=0;
-// A verified path and an uncertainty hatch per region. Each frame performs
+// An approximate interior path and an uncertainty hatch per region. Each frame performs
 // bounded batches; generation cancellation abandons obsolete tasks between frames.
 export function createApproximationLayer(board:JXG.Board){
   const renderer=board.renderer as typeof board.renderer&{layer:SVGGElement[]},root=document.createElementNS(NS,'g');root.setAttribute('pointer-events','none');root.setAttribute('data-region-layer','approximate');renderer.layer[0].append(root);const layerId=++layerIndex,defs=document.createElementNS(NS,'defs');root.append(defs);

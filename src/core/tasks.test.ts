@@ -29,7 +29,7 @@ it('returns analytic region structure with floating coefficients, never a verifi
  const punctured=finish(ok(prepareRegionImageTask(request('{z:|z|<2,z!=0}','z+1'))));expect(isSerializable(punctured)).toBe(true);
 });
 it('exposes only implemented algorithms and preserves preimage existence',()=>{
- const list=availableAlgorithms();expect(list.map(a=>a.category)).not.toContain('ode');expect(list.map(a=>a.category)).not.toContain('interval-arithmetic');
+ const list=availableAlgorithms();expect(list.map(a=>a.category)).not.toContain('ode');expect(list.map(a=>a.category)).toContain('interval-arithmetic');
  const mapping=ok(bindMapping(ok(compileMapping('z^2')))),region=ok(bindGeometry(ok(compileGeometry('{z:|z|<2,z!=1}')))) as Region,image=valueOf(mapRegionImage({region,mapping}))!;
  expect(image.approximation).toBeDefined();expect(checkImageMembership({plan:image.approximation!,point:{re:1,im:0}})).toMatchObject({kind:'approximate',value:true,accuracy:{certified:false}});
  const custom=defineAlgorithm<{x:number},number>({id:'double-test',category:'geometry',description:'test',execute:({x})=>2*x});expect(custom.execute({x:3})).toBe(6);expect(Object.isFrozen(custom)).toBe(true);

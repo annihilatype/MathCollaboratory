@@ -1,3 +1,6 @@
+import {approximate,type MathResult} from '../results';
+import type {CellClassification} from '../interval/program';
+import {classifyCoefficientRegion} from '../interval/geometry';
 import {MathDiagnostic,diagnosis,type Diagnostic} from '../diagnostics';
 import type {ComplexCoordinate} from '../types';
 import type { Viewport } from '../types';
@@ -289,4 +292,14 @@ export function createRegionTilingTask(plan:InversePlan,view:Viewport,unit:numbe
 }
 export function tileRegionImage(plan:InversePlan,view:Viewport,unit:number,budget=4096,pixelSize=2):RegionTiling {
   return createRegionTilingTask(plan,view,unit,budget,pixelSize).step(Infinity)!;
+}
+
+/** Strict evidence for the supplied coefficient model; optional legacy fallback
+ * retains an approximate MathResult even when it says inside or outside.
+ * No heuristic inverse enclosure is upgraded to a certified image. */
+export function analyzeSourceBox(region:Region,box:Box,fallback=false):MathResult<CellClassification>{
+ const verified=classifyCoefficientRegion(region,box);
+ if(verified.kind==='interval-confirmed'||!fallback)return verified;
+ const old=classifySourceBox(region,box),classification:CellClassification=old===1?'inside':old===-1?'outside':'unknown';
+ return {...approximate(classification),diagnostics:verified.diagnostics};
 }

@@ -5,8 +5,11 @@ let active:{field:MathfieldElement;context:EditorContext;selection:Selection}|un
 export function trackEditor(field:MathfieldElement,context:()=>EditorContext):()=>void {
   const remember=()=>{active={field,context:context(),selection:{...field.selection,ranges:field.selection.ranges.map(r=>[...r] as [number,number])}};};
   const update=()=>{if(active?.field===field)remember();};
+  // MathLive may defer focusin for 60ms; remember the intended editor before
+  // a rapid click on the input toolbar can restore a previously active field.
+  field.addEventListener('pointerdown',remember,{capture:true});field.addEventListener('focus',remember,{capture:true});
   field.addEventListener('focusin',remember);field.addEventListener('selection-change',update);field.addEventListener('input',update);field.addEventListener('focusout',update);
-  return ()=>{field.removeEventListener('focusin',remember);field.removeEventListener('selection-change',update);field.removeEventListener('input',update);field.removeEventListener('focusout',update);if(active?.field===field){active=undefined;}};
+  return ()=>{field.removeEventListener('pointerdown',remember,{capture:true});field.removeEventListener('focus',remember,{capture:true});field.removeEventListener('focusin',remember);field.removeEventListener('selection-change',update);field.removeEventListener('input',update);field.removeEventListener('focusout',update);if(active?.field===field){active=undefined;}};
 }
 export function activeContext():EditorContext|undefined{return active?.field.isConnected&&!active.field.closest('[inert]')?active.context:undefined;}
 // MathLive 0.111 delays its programmatic keyboard-sink focus by 60 ms.

@@ -1,13 +1,14 @@
+import {useKeyboardPointer} from './keyboardPointer';
 import {useEffect,useRef,useState} from 'react';
 import {keyboardLayouts,type KeyboardCategory} from './keyboard';
 import {restoreEditor} from './editorSession';
-import {FunctionCatalog} from './FunctionCatalog';
+import {FunctionPopover} from './FunctionPopover';
 export function MathInputTools({complexMode,children}:{complexMode:boolean;children:React.ReactNode}){
-  const [open,setOpen]=useState(false),[catalog,setCatalog]=useState(false),[category,setCategory]=useState<KeyboardCategory>('main');
-  const host=useRef<HTMLDivElement>(null);
+  const [open,setOpen]=useState(false),[functionsOpen,setFunctionsOpen]=useState(false),[category,setCategory]=useState<KeyboardCategory>('main');
+  const host=useRef<HTMLDivElement>(null),keyboardPointer=useKeyboardPointer(),functionsButton=useRef<HTMLButtonElement>(null);
   useEffect(()=>{
     const keyboard=window.mathVirtualKeyboard;keyboard.container=host.current;keyboard.editToolbar='none';
-    const toggle=()=>setOpen(keyboard.visible);keyboard.addEventListener('virtual-keyboard-toggle',toggle);
+    const toggle=()=>{setOpen(keyboard.visible);if(!keyboard.visible)document.getElementById('math-functions')?.hidePopover();};keyboard.addEventListener('virtual-keyboard-toggle',toggle);
     return ()=>{keyboard.removeEventListener('virtual-keyboard-toggle',toggle);keyboard.hide({animate:false});keyboard.container=null;};
   },[]);
   useEffect(()=>{const keyboard=window.mathVirtualKeyboard;keyboard.layouts=keyboardLayouts(complexMode);setCategory('main');
@@ -17,7 +18,7 @@ export function MathInputTools({complexMode,children}:{complexMode:boolean;child
     return ()=>cancelAnimationFrame(frame);
   },[complexMode]);
   useEffect(()=>{
-    function escape(e:KeyboardEvent){if(e.key==='Escape'&&window.mathVirtualKeyboard.visible&&!document.querySelector('dialog[open]')){e.preventDefault();window.mathVirtualKeyboard.hide({animate:false});restoreEditor();}}
+    function escape(e:KeyboardEvent){if(e.key==='Escape'&&window.mathVirtualKeyboard.visible&&!document.querySelector('dialog[open],.function-popover:popover-open')){e.preventDefault();window.mathVirtualKeyboard.hide({animate:false});restoreEditor();}}
     document.addEventListener('keydown',escape);return ()=>document.removeEventListener('keydown',escape);
   },[]);
   function show(){if(window.mathVirtualKeyboard.visible)window.mathVirtualKeyboard.hide({animate:false});else{restoreEditor();window.mathVirtualKeyboard.show({animate:false});}}
@@ -25,11 +26,11 @@ export function MathInputTools({complexMode,children}:{complexMode:boolean;child
   function change(next:KeyboardCategory){setCategory(next);restoreEditor();window.mathVirtualKeyboard.executeCommand(['switchKeyboardLayer',next]);}
   return <>
     {children}
-    <div className="input-toolbar"><span>Математический ввод</span><button type="button" aria-expanded={open} aria-controls="math-keyboard" onPointerDown={e=>e.preventDefault()} onClick={show}>⌨ Клавиатура</button><button type="button" aria-haspopup="dialog" onPointerDown={e=>e.preventDefault()} onClick={()=>setCatalog(true)}>ƒ Функции</button></div>
+    <div className="input-toolbar"><span>Математический ввод</span><button type="button" aria-expanded={open} aria-controls="math-keyboard" onPointerDown={e=>e.preventDefault()} onClick={show}>⌨ Клавиатура</button></div>
     <section id="math-keyboard" className={`keyboard-dock ${open?'open':''}`} aria-label="Математическая клавиатура" aria-hidden={!open} inert={!open}>
-      <div className="keyboard-heading"><div role="tablist" aria-label="Категории клавиатуры">{categories.map(([key,label],index)=><button type="button" key={key} role="tab" tabIndex={category===key?0:-1} aria-selected={category===key} onKeyDown={e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?categories.length-1:(index+(e.key==='ArrowRight'?1:-1)+categories.length)%categories.length;change(categories[next][0]);(e.currentTarget.parentElement!.children[next] as HTMLButtonElement).focus();}} onPointerDown={e=>e.preventDefault()} onClick={()=>change(key)}>{label}</button>)}</div><button type="button" className="icon-button" aria-label="Закрыть клавиатуру" onClick={()=>{window.mathVirtualKeyboard.hide({animate:false});restoreEditor();}}>×</button></div>
-      <div className="keyboard-host" ref={host}/>
+      <div className="keyboard-heading"><div className="keyboard-navigation"><div role="tablist" aria-label="Категории клавиатуры">{categories.map(([key,label],index)=><button type="button" key={key} role="tab" tabIndex={category===key?0:-1} aria-selected={category===key} onKeyDown={e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?categories.length-1:(index+(e.key==='ArrowRight'?1:-1)+categories.length)%categories.length;change(categories[next][0]);(e.currentTarget.parentElement!.children[next] as HTMLButtonElement).focus();}} onPointerDown={e=>e.preventDefault()} onClick={()=>change(key)}>{label}</button>)}</div><button ref={functionsButton} type="button" className="functions-button" aria-label="Функции" aria-haspopup="dialog" aria-expanded={functionsOpen} aria-controls="math-functions" popoverTarget="math-functions" onPointerDown={e=>e.preventDefault()}>ƒx</button></div><button type="button" className="icon-button" aria-label="Закрыть клавиатуру" onClick={()=>{window.mathVirtualKeyboard.hide({animate:false});restoreEditor();}}>×</button></div>
+      <div className="keyboard-host" ref={host} {...keyboardPointer}/>
     </section>
-    {catalog&&<FunctionCatalog complexMode={complexMode} onClose={()=>setCatalog(false)}/>}
+    <FunctionPopover id="math-functions" anchor={functionsButton} complexMode={complexMode} onOpenChange={setFunctionsOpen}/>
   </>;
 }

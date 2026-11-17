@@ -1,5 +1,6 @@
+import {prepareIntervalSubdivision,type IntervalSubdivisionRequest} from './interval/subdivision';
 import {mapRegion,type RegionImage} from './regions/transform';
-import {imageMembership,createRegionTilingTask,type InversePlan,type RegionTilingTask} from './regions/inverse';
+import {imageMembership,createRegionTilingTask,analyzeSourceBox,type InversePlan,type RegionTilingTask} from './regions/inverse';
 import type {Region} from './regions/model';
 import type {ComplexMapping} from './mapping/types';
 import type {ComplexCoordinate,Viewport} from './types';
@@ -12,6 +13,8 @@ export interface Algorithm<Input,Output>{id:string;category:AlgorithmCategory;de
 export function defineAlgorithm<I,O>(algorithm:Algorithm<I,O>):Readonly<Algorithm<I,O>>{return Object.freeze(algorithm);}
 // Only implemented methods are registered. Future categories promise no capability.
 export const mathAlgorithms={
+ verifiedRegionClassification:defineAlgorithm({id:'region-coefficients-interval-v1',category:'interval-arithmetic',description:'Верифицированная классификация заданных двоичных коэффициентов, без заявления о точности их прежней нормализации.',execute:({region,box,fallback=false}:{region:Region;box:import('./regions/inverse').Box;fallback?:boolean})=>analyzeSourceBox(region,box,fallback)}),
+ verifiedSubdivision:defineAlgorithm({id:'region-predicate-interval-v1',category:'interval-arithmetic',description:'Проверка исходного AST области или прообраза с сохранением десятичных литералов.',execute:(input:IntervalSubdivisionRequest)=>prepareIntervalSubdivision(input)}),
  regionImage:defineAlgorithm<{region:Region;mapping:ComplexMapping},MathResult<RegionImage>>({id:'region-image-v1',category:'analytic-transform',description:'Аналитические семейства с переходом к обратному численному плану.',execute:({region,mapping})=>{
   const image=mapRegion(region,mapping);
   if(image.accuracy==='exact')return {...approximate(image),derivation:{kind:'analytic-formula',law:mapping.regionTransform?.kind??'analytic-region-law'}};

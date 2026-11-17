@@ -19,7 +19,7 @@ it('all core imports stay inside the kernel or the existing mathjs package',()=>
  expect(faults).toEqual([]);
 });
 it('loads the public API without a browser and exposes no placeholder future solver',()=>{
- expect(typeof globalThis).toBe('object');expect(kernel.availableAlgorithms().map(a=>a.category)).not.toContain('interval-arithmetic');expect(kernel.availableAlgorithms().map(a=>a.category)).not.toContain('ode');
+ expect(typeof globalThis).toBe('object');expect(kernel.availableAlgorithms().map(a=>a.category)).toContain('interval-arithmetic');expect(kernel.availableAlgorithms().map(a=>a.category)).not.toContain('ode');
  const compiled=kernel.compileReal('x^2+1');if(!compiled.ok)throw new Error(compiled.diagnostic.message);expect(kernel.evaluateReal(compiled.value,2)).toMatchObject({kind:'approximate',value:5});
 });
 

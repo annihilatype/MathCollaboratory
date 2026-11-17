@@ -88,7 +88,7 @@ export function mapRegion(region:Region,mapping:ComplexMapping):RegionImage {
     if(!m)return unsupported;
     const result=explainInversePlan(region,m),approximation=result.plan;
     if(!approximation)return {...unsupported,diagnostic:result.diagnostic,notice:`Образ области не закрашен: ${result.diagnostic?.message}`};
-    return {region:null,approximation,accuracy:'approximate',notice:'Приближённый образ: закрашены подтверждённые участки; штриховка обозначает численную неопределённость у границ или особенностей.',diagnostic:diagnosis('uncertain','interval-enclosure','Проверка принадлежности через все допустимые обратные ветви; пограничные ячейки требуют уточнения.')};
+    return {region:null,approximation,accuracy:'approximate',notice:'Приближённый образ: заливка основана на эвристических ограждениях float64; штриховка обозначает численную неопределённость у границ или особенностей.',diagnostic:diagnosis('uncertain','floating-enclosure','Проверка принадлежности через все допустимые обратные ветви; пограничные ячейки требуют уточнения.')};
   }
   try{
     const boundaryParts=partsOf(region).filter(p=>p.equality);
